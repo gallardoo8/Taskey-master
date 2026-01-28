@@ -1,0 +1,60 @@
+
+C:\Users\clanu\Downloads\Taskey-master\app\(tabs)\PrimeraPantalla.js
+  4:18  warning  'Fonts' is defined but never used  no-unused-vars
+
+C:\Users\clanu\Downloads\Taskey-master\app\iniciopapa.js
+   4:24  warning  'FontSizes' is defined but never used                                                                                                                                                                                                              no-unused-vars
+   4:35  warning  'Spacing' is defined but never used                                                                                                                                                                                                                no-unused-vars
+   4:44  warning  'BorderRadius' is defined but never used                                                                                                                                                                                                           no-unused-vars
+   4:58  warning  'Shadows' is defined but never used                                                                                                                                                                                                                no-unused-vars
+  10:20  error    React Hook "useRouter" is called in function "iniciopapa" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word "use"  react-hooks/rules-of-hooks
+
+C:\Users\clanu\Downloads\Taskey-master\app\loginhijo.js
+  2:21  warning  'Image' is defined but never used                  no-unused-vars
+  4:24  warning  'FontSizes' is defined but never used              no-unused-vars
+  4:35  warning  'Spacing' is defined but never used                no-unused-vars
+  4:44  warning  'BorderRadius' is defined but never used           no-unused-vars
+  4:58  warning  'Shadows' is defined but never used                no-unused-vars
+  5:8   warning  'BackgroundDecorations' is defined but never used  no-unused-vars
+
+C:\Users\clanu\Downloads\Taskey-master\app\loginpapa.js
+   1:8   warning  'react' is defined but never used                                                                                                                                                                                                                 no-unused-vars
+   2:21  warning  'Image' is defined but never used                                                                                                                                                                                                                 no-unused-vars
+   4:24  warning  'FontSizes' is defined but never used                                                                                                                                                                                                             no-unused-vars
+   4:35  warning  'Spacing' is defined but never used                                                                                                                                                                                                               no-unused-vars
+   4:44  warning  'BorderRadius' is defined but never used                                                                                                                                                                                                          no-unused-vars
+   4:58  warning  'Shadows' is defined but never used                                                                                                                                                                                                               no-unused-vars
+   5:8   warning  'BackgroundDecorations' is defined but never used                                                                                                                                                                                                 no-unused-vars
+  10:20  error    React Hook "useRouter" is called in function "loginpapa" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word "use"  react-hooks/rules-of-hooks
+
+C:\Users\clanu\Downloads\Taskey-master\app\perfildehijo.js
+  2:70  warning  'TextInput' is defined but never used              no-unused-vars
+  4:17  warning  'Fonts' is defined but never used                  no-unused-vars
+  4:24  warning  'FontSizes' is defined but never used              no-unused-vars
+  4:35  warning  'Spacing' is defined but never used                no-unused-vars
+  4:44  warning  'BorderRadius' is defined but never used           no-unused-vars
+  4:58  warning  'Shadows' is defined but never used                no-unused-vars
+  5:8   warning  'BackgroundDecorations' is defined but never used  no-unused-vars
+
+C:\Users\clanu\Downloads\Taskey-master\app\principalpapa.js
+  2:70  warning  'TextInput' is defined but never used              no-unused-vars
+  4:24  warning  'FontSizes' is defined but never used              no-unused-vars
+  4:35  warning  'Spacing' is defined but never used                no-unused-vars
+  4:44  warning  'BorderRadius' is defined but never used           no-unused-vars
+  4:58  warning  'Shadows' is defined but never used                no-unused-vars
+  5:8   warning  'BackgroundDecorations' is defined but never used  no-unused-vars
+
+C:\Users\clanu\Downloads\Taskey-master\app\registropapa.js
+  2:21  warning  'Image' is defined but never used                                no-unused-vars
+  3:8   warning  Using exported name 'Checkbox' as identifier for default import  import/no-named-as-default
+  5:24  warning  'FontSizes' is defined but never used                            no-unused-vars
+  5:35  warning  'Spacing' is defined but never used                              no-unused-vars
+  5:44  warning  'BorderRadius' is defined but never used                         no-unused-vars
+  5:58  warning  'Shadows' is defined but never used                              no-unused-vars
+  6:8   warning  'BackgroundDecorations' is defined but never used                no-unused-vars
+
+C:\Users\clanu\Downloads\Taskey-master\components\BarraNavegacion.js
+  6:16  warning  'SCREEN_WIDTH' is assigned a value but never used  no-unused-vars
+
+✖ 41 problems (2 errors, 39 warnings)
+
