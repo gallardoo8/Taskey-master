@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BackgroundDecorations from "../components/BackgroundDecorations";
@@ -18,6 +19,10 @@ export default function InicioPapa() {
     return (
         <View style={styles.container}>
             <BackgroundDecorations ellipseTop={0.12} />
+
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <Ionicons name="chevron-back" size={32} color="white" />
+            </TouchableOpacity>
 
             <Text style={styles.header}>¡Te damos la bienvenida!</Text>
 
@@ -48,6 +53,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.primary,
         position: 'relative',
+    },
+    backButton: {
+        position: 'absolute',
+        top: 50,
+        left: 20,
+        zIndex: 20,
+        padding: 10,
     },
     //texto
     header: {

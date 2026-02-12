@@ -45,19 +45,31 @@ const TASKS_PREVIOUS = [
     }
 ];
 
+const children = [
+    { id: '1', name: 'Cons', avatar: require('../assets/images/capicons.png') },
+    { id: '2', name: 'Angel', avatar: require('../assets/images/capiangel.png') },
+    { id: '3', name: 'Fer', avatar: require('../assets/images/capifer.png') },
+];
+
 export default function PerfilDeHijo() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const [activeTab, setActiveTab] = useState('Semana'); // 'Semana' or 'Anteriores'
 
     const childName = params.name || 'Cons';
-    const childAvatar = params.avatar || require('../assets/images/capicons.png');
+    // Look up avatar from the children array to avoid issues with param serialization
+    const currentChild = children.find(c => c.name === childName) || children[0];
+    const childAvatar = currentChild.avatar;
 
     const handleBackPress = () => router.back();
     const handleAssignTask = () => router.push({
         pathname: '/asignartarea',
         params: { name: childName, avatar: childAvatar }
     });
+
+    const handleSwitchChild = (name, avatar) => {
+        router.setParams({ name, avatar });
+    };
 
     const renderTask = (task) => (
         <View key={task.id} style={styles.taskCard}>
@@ -85,31 +97,47 @@ export default function PerfilDeHijo() {
 
     return (
         <View style={styles.container}>
-            {/* Header Section */}
+            {/* Header Section with Decorative Circles and Switcher */}
             <View style={styles.header}>
-                {/* Decorative Circles */}
-                <View style={styles.circlePink} />
-                <View style={styles.circleGreen} />
-                <View style={styles.circleCyan} />
-                <View style={styles.circleOrange} />
-                <View style={styles.circlePurpleDark} />
-
-                <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={32} color="black" />
-                </TouchableOpacity>
+                <View style={[styles.circle, styles.circlePink]} />
+                <View style={[styles.circle, styles.circleGreen]} />
+                <View style={[styles.circle, styles.circleCyan]} />
 
                 <View style={styles.headerContent}>
-                    {/* Character/Avatar with Bubble Background Concept */}
-                    <View style={styles.avatarWrapper}>
-                        <Image source={childAvatar} style={styles.avatar} resizeMode="contain" />
-                    </View>
-
-                    <View style={styles.nameBadge}>
-                        <Text style={styles.nameText}>{childName}</Text>
-                    </View>
+                    {/* Horizontal Profile Switcher (The requested 'carrusel') */}
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.switcherContent}
+                        style={styles.switcher}
+                        snapToInterval={96} // width (76) + gap (20)
+                        decelerationRate="fast"
+                    >
+                        {children.map((child) => (
+                            <TouchableOpacity
+                                key={child.id}
+                                style={[
+                                    styles.switcherItem,
+                                    child.name === childName && styles.switcherItemActive
+                                ]}
+                                onPress={() => handleSwitchChild(child.name, child.avatar)}
+                            >
+                                <View style={[
+                                    styles.switcherAvatarWrapper,
+                                    child.name === childName && styles.switcherAvatarActive
+                                ]}>
+                                    <Image source={child.avatar} style={styles.switcherAvatar} resizeMode="contain" />
+                                </View>
+                                <Text style={[
+                                    styles.switcherName,
+                                    child.name === childName && styles.switcherNameActive
+                                ]}>{child.name}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
 
                     <View style={styles.linkedContainer}>
-                        <Ionicons name="checkmark-circle" size={18} color="#84CC16" />
+                        <Ionicons name="checkmark-circle" size={18} color="#AAD62D" />
                         <Text style={styles.linkedText}>1 dispositivo vinculado</Text>
                     </View>
                 </View>
@@ -135,6 +163,27 @@ export default function PerfilDeHijo() {
                     </View>
                     <Feather name="chevron-right" size={24} color="black" />
                 </TouchableOpacity>
+
+                {/* Sleep Schedule */}
+                <Text style={[styles.sectionTitle, { marginTop: 25 }]}>Horas de sueño</Text>
+                <View style={styles.sleepCard}>
+                    <View style={styles.sleepInfo}>
+                        <Text style={styles.timeLabel}>De:</Text>
+                        <Text style={styles.timeValue}>21:30</Text>
+                        <Text style={[styles.timeLabel, { marginLeft: 15 }]}>Hasta:</Text>
+                        <Text style={styles.timeValue}>8:00</Text>
+                        <Text style={styles.daysText}>Lun - Vie</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.editSleepButton}
+                        onPress={() => router.push({
+                            pathname: '/horariodesueno',
+                            params: { name: childName, avatar: childAvatar }
+                        })}
+                    >
+                        <Text style={styles.editSleepButtonText}>Editar</Text>
+                    </TouchableOpacity>
+                </View>
 
                 {/* Tasks */}
                 <Text style={[styles.sectionTitle, { marginTop: 25 }]}>Tareas</Text>
@@ -179,106 +228,96 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.gray,
     },
     header: {
-        height: SCREEN_HEIGHT * 0.35,
+        height: SCREEN_HEIGHT * 0.32,
         backgroundColor: Colors.primary,
         borderBottomLeftRadius: 40,
         borderBottomRightRadius: 40,
         overflow: 'hidden',
         justifyContent: 'center',
-        alignItems: 'center',
         paddingTop: 40,
+        ...Shadows.button,
+    },
+    circle: {
+        position: 'absolute',
+        borderRadius: 1000,
     },
     circlePink: {
-        position: 'absolute',
-        top: 60,
-        left: -30,
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: '#FF009B',
-    },
-    circleGreen: {
-        position: 'absolute',
-        top: -10,
-        left: 80,
         width: 100,
         height: 100,
-        borderRadius: 50,
+        backgroundColor: '#FF009B',
+        top: -20,
+        left: -20,
+        opacity: 0.6,
+    },
+    circleGreen: {
+        width: 120,
+        height: 120,
         backgroundColor: '#AAD62D',
+        bottom: -30,
+        right: 40,
+        opacity: 0.6,
     },
     circleCyan: {
-        position: 'absolute',
-        bottom: -20,
-        right: 170,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: '#00AEEB',
-    },
-    circleOrange: {
-        position: 'absolute',
-        top: 150,
-        right: -30,
-        width: 90,
-        height: 90,
-        borderRadius: 45,
-        backgroundColor: '#F59E0B',
-    },
-    circlePurpleDark: {
-        position: 'absolute',
-        top: 180,
-        left: 50,
         width: 70,
         height: 70,
-        borderRadius: 35,
-        backgroundColor: '#581C87',
-    },
-    backButton: {
-        position: 'absolute',
-        top: 60,
-        left: 20,
-        zIndex: 10,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 15,
-        padding: 2,
+        backgroundColor: '#00AEEB',
+        top: 20,
+        right: -10,
+        opacity: 0.6,
     },
     headerContent: {
         alignItems: 'center',
+        zIndex: 10,
     },
-    avatarWrapper: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: '#D8B4FE',
-        borderWidth: 3,
-        borderColor: '#00AEEB',
+    switcher: {
+        width: '100%',
+        marginBottom: 15,
+    },
+    switcherContent: {
+        paddingHorizontal: 20,
+        alignItems: 'center',
+        gap: 20,
+    },
+    switcherItem: {
+        alignItems: 'center',
+        opacity: 0.6,
+    },
+    switcherItemActive: {
+        opacity: 1,
+    },
+    switcherAvatarWrapper: {
+        width: 76,
+        height: 76,
+        borderRadius: 38,
+        backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center',
         alignItems: 'center',
-        overflow: 'hidden',
-        marginBottom: 10,
+        borderWidth: 2,
+        borderColor: 'transparent',
     },
-    avatar: {
-        width: 80,
-        height: 80,
-    },
-    nameBadge: {
+    switcherAvatarActive: {
         backgroundColor: Colors.white,
-        paddingVertical: 5,
-        paddingHorizontal: 35,
-        borderRadius: 15,
-        ...Shadows.button,
-        shadowOpacity: 0.1,
+        borderColor: '#AAD62D',
+        transform: [{ scale: 1.1 }],
     },
-    nameText: {
-        fontSize: 24,
+    switcherAvatar: {
+        width: 55,
+        height: 55,
+    },
+    switcherName: {
+        color: Colors.white,
         fontFamily: Fonts.figtreebold,
+        fontSize: 14,
+        marginTop: 5,
+    },
+    switcherNameActive: {
         fontWeight: 'bold',
-        color: '#581C87',
+        fontSize: 16,
     },
     linkedContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 5,
         gap: 5,
     },
     linkedText: {
@@ -439,5 +478,49 @@ const styles = StyleSheet.create({
     },
     completedSpacer: {
         width: 32,
-    }
+    },
+    sleepCard: {
+        backgroundColor: Colors.white,
+        borderRadius: 15,
+        padding: 15,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        ...Shadows.button,
+        shadowOpacity: 0.05,
+    },
+    sleepInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    timeLabel: {
+        fontSize: 14,
+        fontFamily: Fonts.figtreeRegular,
+        color: Colors.black,
+        marginRight: 8,
+    },
+    timeValue: {
+        fontSize: 18,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        color: Colors.black,
+    },
+    daysText: {
+        fontSize: 14,
+        fontFamily: Fonts.figtreeRegular,
+        color: '#6B7280',
+        marginLeft: 15,
+    },
+    editSleepButton: {
+        backgroundColor: '#7E22CE',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+    },
+    editSleepButtonText: {
+        color: Colors.white,
+        fontSize: 12,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+    },
 });

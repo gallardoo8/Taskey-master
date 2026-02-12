@@ -21,6 +21,8 @@ export default function QuienEres() {
             {/* Decoraciones de fondo */}
             <BackgroundDecorations />
 
+
+
             <Text style={styles.preguntatext}>
                 Este dispositivo{'\n'}pertenece a...
             </Text>
@@ -72,6 +74,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.primary,
         position: 'relative',
     },
+
 
     capillaveImage: {
         position: 'absolute',

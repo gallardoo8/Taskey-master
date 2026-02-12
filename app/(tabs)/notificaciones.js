@@ -2,8 +2,7 @@ import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from "react";
 import { Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import BarraNavegacion from "../components/BarraNavegacion";
-import { Colors, Fonts, Shadows } from "../styles/globalStyles";
+import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -19,7 +18,7 @@ const INITIAL_NOTIFICATIONS = [
         evidenceImage: 'https://via.placeholder.com/300x150/E5E7EB/9CA3AF?text=Evidence+Image', // Placeholder for the generic mountain image
     },
     {
-        id: '2',
+        id: '1',
         type: 'time_warning',
         user: 'Fer',
         time: 'Hace 1 hora',
@@ -51,7 +50,7 @@ const INITIAL_NOTIFICATIONS = [
     }
 ];
 
-export default function NotificacionesPapa() {
+export default function NotificacionesPapaTab() {
     const router = useRouter();
     const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
@@ -98,7 +97,7 @@ export default function NotificacionesPapa() {
                     <View style={styles.textContainer}>
                         {item.type.includes('evidence') ? (
                             <Text style={styles.notificationText}>
-                                <Text style={styles.boldText}>{item.user}</Text> ha marcado "<Text style={styles.boldText}>{item.task}</Text>" como completada
+                                <Text style={styles.boldText}>{item.user}</Text> ha marcado &quot;<Text style={styles.boldText}>{item.task}</Text>&quot; como completada
                             </Text>
                         ) : (
                             <Text style={styles.notificationText}>
@@ -186,33 +185,21 @@ export default function NotificacionesPapa() {
 
     return (
         <View style={styles.container}>
-            {/* Header Section with Decorative Circles */}
+            {/* Header */}
             <View style={styles.header}>
-                <View style={[styles.circle, styles.circlePink]} />
-                <View style={[styles.circle, styles.circleCyan]} />
-                <View style={[styles.circle, styles.circleOrange]} />
-
-                <View style={styles.headerContent}>
-                    <Text style={styles.headerTitle}>Notificaciones</Text>
-                    <View style={styles.bellBadge}>
-                        <FontAwesome5 name="bell" size={24} color="#FACC15" />
-                        <View style={styles.redDot} />
-                    </View>
-                </View>
+                <Text style={styles.headerTitle}>Notificaciones</Text>
+                <FontAwesome5 name="bell" size={28} color="#FACC15" style={styles.bellIcon} />
             </View>
 
-            <View style={styles.content}>
-                <FlatList
-                    data={notifications}
-                    renderItem={({ item }) => renderNotificationCard(item)}
-                    keyExtractor={(item) => item.id}
-                    style={styles.list}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                />
-            </View>
-
-            <BarraNavegacion activeTab="notificaciones" />
+            <FlatList
+                data={notifications}
+                renderItem={({ item }) => renderNotificationCard(item)}
+                keyExtractor={(item) => item.id}
+                style={styles.contentContainer}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                ListFooterComponent={<View style={{ height: 80 }} />}
+            />
         </View>
     );
 }
@@ -220,90 +207,32 @@ export default function NotificacionesPapa() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: '#F3F4F6', // Light gray background
     },
     header: {
-        height: SCREEN_HEIGHT * 0.22,
-        backgroundColor: Colors.primary,
-        overflow: 'hidden',
-        justifyContent: 'center',
-        paddingTop: 30,
-        borderBottomLeftRadius: 40,
-        borderBottomRightRadius: 40,
-        ...Shadows.button,
-    },
-    circle: {
-        position: 'absolute',
-        borderRadius: 1000,
-    },
-    circlePink: {
-        width: 120,
-        height: 120,
-        backgroundColor: Colors.pink,
-        top: -30,
-        left: -30,
-        opacity: 0.6,
-    },
-    circleCyan: {
-        width: 80,
-        height: 80,
-        backgroundColor: '#06B6D4',
-        bottom: -10,
-        right: 30,
-        opacity: 0.6,
-    },
-    circleOrange: {
-        width: 50,
-        height: 50,
-        backgroundColor: '#F59E0B',
-        top: 20,
-        right: -5,
-        opacity: 0.6,
-    },
-    headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 25,
-        zIndex: 10,
+        justifyContent: 'center', // Center title and icon together
+        paddingTop: SCREEN_HEIGHT * 0.08,
+        paddingBottom: 20,
+        backgroundColor: '#F3F4F6',
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 28,
         fontFamily: Fonts.figtreebold,
         fontWeight: 'bold',
-        color: Colors.white,
+        color: Colors.black,
         marginRight: 15,
     },
-    bellBadge: {
-        width: 50,
-        height: 50,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 15,
-        justifyContent: 'center',
-        alignItems: 'center',
-        position: 'relative',
+    bellIcon: {
+        transform: [{ rotate: '-15deg' }]
     },
-    redDot: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: '#EF4444',
-        borderWidth: 2,
-        borderColor: Colors.white,
-    },
-    content: {
+    contentContainer: {
         flex: 1,
-    },
-    list: {
-        flex: 1,
-        marginTop: 15,
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingBottom: 100, // Space for navigation bar
+        paddingBottom: 20,
     },
     card: {
         backgroundColor: Colors.white,
@@ -318,13 +247,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         marginBottom: 10,
     },
+    iconContainer: {
+        marginRight: 15,
+    },
     iconCircle: {
         width: 45,
         height: 45,
         borderRadius: 22.5,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 15,
     },
     textContainer: {
         flex: 1,
@@ -332,9 +263,9 @@ const styles = StyleSheet.create({
     },
     notificationText: {
         fontFamily: Fonts.figtreeRegular,
-        fontSize: 15,
+        fontSize: 16,
         color: Colors.black,
-        lineHeight: 20,
+        lineHeight: 22,
         marginBottom: 4,
     },
     boldText: {
@@ -343,22 +274,23 @@ const styles = StyleSheet.create({
     },
     timeText: {
         fontFamily: Fonts.figtreeRegular,
-        fontSize: 12,
+        fontSize: 13,
         color: '#9CA3AF',
     },
     evidenceContainer: {
         marginTop: 5,
     },
     evidenceImageWrapper: {
-        height: 140,
-        width: '100%',
-        marginVertical: 12,
+        height: 150,
+        width: '80%',
+        alignSelf: 'center',
+        marginVertical: 15,
         borderRadius: 12,
         overflow: 'hidden',
     },
     imagePlaceholder: {
         flex: 1,
-        backgroundColor: '#E0F2FE',
+        backgroundColor: '#E0F2FE', // Light blue sky
         position: 'relative',
         alignItems: 'center',
         justifyContent: 'flex-end',
@@ -367,9 +299,9 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 20,
         right: 40,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         backgroundColor: '#FACC15',
     },
     mountainLeft: {
@@ -377,9 +309,9 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: '40%',
-        height: 60,
-        backgroundColor: '#0EA5E9',
-        borderTopRightRadius: 60,
+        height: 80,
+        backgroundColor: '#0EA5E9', // Blue mountain
+        borderTopRightRadius: 80,
         transform: [{ skewX: '-20deg' }]
     },
     mountainRight: {
@@ -387,40 +319,42 @@ const styles = StyleSheet.create({
         bottom: 0,
         right: 0,
         left: '30%',
-        height: 80,
-        backgroundColor: '#22D3EE',
-        borderTopLeftRadius: 80,
+        height: 100,
+        backgroundColor: '#22D3EE', // Lighter blue mountain
+        borderTopLeftRadius: 100,
         opacity: 0.8,
     },
     actionButtons: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 5,
         gap: 10,
     },
     actionButton: {
         flex: 1,
-        paddingVertical: 12,
-        borderRadius: 15,
+        paddingVertical: 10,
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
         ...Shadows.button,
     },
     confirmButton: {
-        backgroundColor: '#84CC16',
+        backgroundColor: '#84CC16', // Lime green
     },
     rejectButton: {
-        backgroundColor: '#EF4444',
+        backgroundColor: '#EF4444', // Red
     },
     buttonText: {
         color: Colors.white,
         fontFamily: Fonts.figtreebold,
         fontWeight: 'bold',
-        fontSize: 13,
+        fontSize: 12, // Adjusted for space
     },
     statusMessageContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 10,
+        marginTop: 15,
         gap: 8,
     },
     successText: {
@@ -432,13 +366,13 @@ const styles = StyleSheet.create({
     statusMessageContainerRejected: {
         marginTop: 10,
         backgroundColor: '#FEF2F2',
-        padding: 12,
-        borderRadius: 15,
+        padding: 10,
+        borderRadius: 12,
     },
     smallRedX: {
-        width: 18,
-        height: 18,
-        borderRadius: 9,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
         backgroundColor: '#EF4444',
         alignItems: 'center',
         justifyContent: 'center',
@@ -448,25 +382,24 @@ const styles = StyleSheet.create({
         color: '#EF4444',
         fontFamily: Fonts.figtreebold,
         fontWeight: 'bold',
-        fontSize: 14,
+        fontSize: 15,
     },
     rejectedSubtitle: {
         color: '#EF4444',
         fontFamily: Fonts.figtreeRegular,
-        fontSize: 13,
-        paddingLeft: 26,
-        lineHeight: 18,
+        fontSize: 14,
+        paddingLeft: 28, // Indent to align with text
+        lineHeight: 20,
     },
     failedActionContainer: {
         alignItems: 'flex-end',
         marginTop: 10,
     },
     assignButton: {
-        backgroundColor: Colors.primary,
+        backgroundColor: '#7E22CE', // Purple
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 20,
-        ...Shadows.button,
     },
     assignButtonText: {
         color: Colors.white,

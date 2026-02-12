@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Colors, Fonts } from "../styles/globalStyles";
@@ -12,11 +13,15 @@ export default function LoginPapa() {
     };
 
     const handlePrincipalPapaPress = () => {
-        router.push('/principalpapa');
+        router.replace('/principalpapa');
     };
 
     return (
         <View style={styles.container}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <Ionicons name="chevron-back" size={32} color="white" />
+            </TouchableOpacity>
+
             <Text style={styles.header}>Iniciar Sesión</Text>
             <Text style={styles.texto}>Utiliza el correo con el que te registraste</Text>
 
@@ -53,6 +58,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
+    },
+    backButton: {
+        position: 'absolute',
+        top: 50,
+        left: 20,
+        zIndex: 20,
+        padding: 10,
+        backgroundColor: 'rgba(0,0,0,0.1)', // Subtle background to see white on gray
+        borderRadius: 20,
     },
     header: {
         width: SCREEN_WIDTH * 0.8,

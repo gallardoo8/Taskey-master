@@ -147,12 +147,9 @@ export default function AdminTareas() {
 
     return (
         <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={32} color="black" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Tareas</Text>
+            {/* Header Content */}
+            <View style={styles.headerContent}>
+                <Text style={styles.headerTitle}>Administrar tareas</Text>
             </View>
 
             <ScrollView

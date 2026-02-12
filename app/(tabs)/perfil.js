@@ -2,12 +2,11 @@ import { Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-ico
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Dimensions, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import BarraNavegacion from "../components/BarraNavegacion";
-import { Colors, Fonts, Shadows } from "../styles/globalStyles";
+import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export default function PerfilDePapa() {
+export default function PerfilDePapaTab() {
     const router = useRouter();
     const [username, setUsername] = useState("Gaby Pacheco");
     const [tempUsername, setTempUsername] = useState("");
@@ -47,43 +46,33 @@ export default function PerfilDePapa() {
 
     return (
         <View style={styles.container}>
-            {/* Header Section with Decorative Circles */}
-            <View style={styles.header}>
-                <View style={[styles.circle, styles.circlePink]} />
-                <View style={[styles.circle, styles.circleCyan]} />
-                <View style={[styles.circle, styles.circleOrange]} />
+            {/* Header Section */}
+            <View style={styles.headerBackground}>
+                <View style={[styles.circle, styles.circle1]} />
+                <View style={[styles.circle, styles.circle2]} />
 
-                <View style={styles.headerContent}>
-                    <View style={styles.profileBanner}>
-                        <View style={styles.avatarCircle}>
-                            <Image
-                                source={require("../assets/images/capinombre.png")}
-                                style={styles.capyImage}
-                                resizeMode="contain"
-                            />
-                        </View>
-                        <View style={styles.nameContainer}>
-                            <Text style={styles.headerName}>{username}</Text>
-                            <Text style={styles.headerSubtext}>Configuración de cuenta</Text>
-                        </View>
-                    </View>
+                <View style={styles.profileBanner}>
+                    <Image
+                        source={require("../../assets/images/capinombre.png")}
+                        style={styles.capyImage}
+                        resizeMode="contain"
+                    />
+                    <Text style={styles.headerName}>{username}</Text>
                 </View>
             </View>
 
-            <View style={styles.content}>
+            <View style={styles.contentContainer}>
                 <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Mi Cuenta</Text>
-
                     {/* Nombre de Usuario */}
                     <View style={styles.menuItem}>
                         <View style={[styles.iconContainer, { backgroundColor: '#FACC15' }]}>
-                            <FontAwesome5 name="user" size={18} color="white" />
+                            <FontAwesome5 name="user" size={20} color="white" />
                         </View>
                         <View style={styles.menuTextContainer}>
                             <View style={styles.labelRow}>
                                 <Text style={styles.menuLabel}>Nombre de usuario</Text>
                                 <TouchableOpacity onPress={handleOpenModal}>
-                                    <Feather name="edit-2" size={16} color={Colors.primary} />
+                                    <Feather name="edit-2" size={16} color="black" style={styles.editIcon} />
                                 </TouchableOpacity>
                             </View>
                             <Text style={styles.menuValue}>{username}</Text>
@@ -99,7 +88,7 @@ export default function PerfilDePapa() {
                         </View>
                         <View style={styles.menuTextContainer}>
                             <Text style={styles.menuLabel}>Correo electrónico</Text>
-                            <Text style={styles.menuValue}>gabspachecho@gmail.com</Text>
+                            <Text style={[styles.menuValue, styles.emailText]}>gabspachecho@gmail.com</Text>
                         </View>
                     </View>
 
@@ -108,33 +97,37 @@ export default function PerfilDePapa() {
                     {/* Preguntas Frecuentes */}
                     <TouchableOpacity style={styles.menuItem} onPress={handlePreguntasPress}>
                         <View style={[styles.iconContainer, { backgroundColor: '#06B6D4' }]}>
-                            <FontAwesome5 name="question" size={18} color="white" />
+                            <FontAwesome5 name="question" size={20} color="white" />
                         </View>
                         <View style={styles.menuTextContainer}>
                             <Text style={styles.menuLabel}>Preguntas frecuentes</Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+                        <Ionicons name="chevron-forward" size={24} color="black" />
                     </TouchableOpacity>
 
                     <View style={styles.divider} />
 
                     {/* Terminos y condiciones */}
                     <TouchableOpacity style={styles.menuItem} onPress={handleTyCPress}>
-                        <View style={[styles.iconContainer, { backgroundColor: '#DDD6FE' }]}>
-                            <FontAwesome5 name="file-alt" size={18} color={Colors.primary} />
+                        <View style={[styles.iconContainer, { backgroundColor: '#E2E8F0' }]}>
+                            <Image
+                                source={require("../../assets/images/tareas.png")}
+                                style={{ width: 20, height: 20, tintColor: Colors.primary }}
+                                resizeMode="contain"
+                            />
                         </View>
                         <View style={styles.menuTextContainer}>
                             <Text style={styles.menuLabel}>Términos y condiciones</Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+                        <Ionicons name="chevron-forward" size={24} color="black" />
                     </TouchableOpacity>
 
-                    <View style={styles.logoutWrapper}>
-                        <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutPress}>
-                            <MaterialIcons name="logout" size={20} color="white" style={{ marginRight: 8 }} />
-                            <Text style={styles.logoutText}>Cerrar sesión</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {/* Cerrar Sesión Button */}
+                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutPress}>
+                        <MaterialIcons name="logout" size={24} color="white" style={{ marginRight: 10 }} />
+                        <Text style={styles.logoutText}>Cerrar sesión</Text>
+                    </TouchableOpacity>
+
                 </View>
             </View>
 
@@ -181,8 +174,6 @@ export default function PerfilDePapa() {
                     </View>
                 </View>
             </Modal>
-
-            <BarraNavegacion activeTab="perfil" />
         </View>
     );
 }
@@ -190,106 +181,70 @@ export default function PerfilDePapa() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: Colors.gray,
     },
-    header: {
-        height: SCREEN_HEIGHT * 0.28,
+    headerBackground: {
         backgroundColor: Colors.primary,
-        overflow: 'hidden',
+        height: SCREEN_HEIGHT * 0.25,
         justifyContent: 'center',
-        paddingTop: 20,
-        borderBottomLeftRadius: 40,
-        borderBottomRightRadius: 40,
-        ...Shadows.button,
+        alignItems: 'center',
+        position: 'relative',
+        zIndex: 1,
+        overflow: 'hidden',
     },
     circle: {
         position: 'absolute',
         borderRadius: 1000,
     },
-    circlePink: {
-        width: 140,
-        height: 140,
-        backgroundColor: Colors.pink,
-        top: -40,
-        left: -20,
-        opacity: 0.6,
-    },
-    circleCyan: {
+    circle1: { // Pink circle left
         width: 100,
         height: 100,
-        backgroundColor: '#06B6D4',
+        backgroundColor: Colors.pink,
         bottom: -20,
-        right: 40,
-        opacity: 0.6,
+        left: -20,
     },
-    circleOrange: {
-        width: 70,
-        height: 70,
-        backgroundColor: '#F59E0B',
-        top: 20,
-        right: -10,
-        opacity: 0.6,
-    },
-    headerContent: {
-        paddingHorizontal: 25,
-        zIndex: 10,
+    circle2: { // Cyan/Teal circle right
+        width: 120,
+        height: 120,
+        backgroundColor: '#06B6D4',
+        bottom: -40,
+        right: -30,
     },
     profileBanner: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        padding: 15,
-        borderRadius: 25,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.3)',
-    },
-    avatarCircle: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
         backgroundColor: Colors.white,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 15,
+        borderRadius: 30,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        width: '90%',
+        justifyContent: 'flex-start',
+        ...Shadows.button,
     },
     capyImage: {
-        width: 45,
-        height: 45,
-    },
-    nameContainer: {
-        flex: 1,
+        width: 50,
+        height: 50,
+        marginRight: 15,
     },
     headerName: {
         fontFamily: Fonts.figtreebold,
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: 'bold',
-        color: Colors.white,
+        color: Colors.primary,
     },
-    headerSubtext: {
-        fontFamily: Fonts.figtreeRegular,
-        fontSize: 14,
-        color: 'rgba(255,255,255,0.8)',
-    },
-    content: {
+    contentContainer: {
         flex: 1,
+        marginTop: -30,
+        zIndex: 2,
         paddingHorizontal: 20,
-        marginTop: 20,
-        zIndex: 10,
+        paddingBottom: SCREEN_HEIGHT * 0.12, // Space for navigation bar
     },
     card: {
+        flex: 1,
         backgroundColor: Colors.white,
-        borderRadius: 24,
-        padding: 24,
+        borderRadius: 20,
+        padding: 20,
         ...Shadows.button,
-        shadowOpacity: 0.08,
-        elevation: 5,
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontFamily: Fonts.figtreebold,
-        fontWeight: 'bold',
-        color: Colors.black,
-        marginBottom: 20,
     },
     menuItem: {
         flexDirection: 'row',
@@ -299,7 +254,7 @@ const styles = StyleSheet.create({
     iconContainer: {
         width: 40,
         height: 40,
-        borderRadius: 12,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 15,
@@ -311,65 +266,68 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        paddingRight: 10,
     },
     menuLabel: {
-        fontFamily: Fonts.figtreebold,
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: '#6B7280',
-        marginBottom: 2,
-    },
-    menuValue: {
         fontFamily: Fonts.figtreebold,
         fontSize: 16,
         fontWeight: 'bold',
         color: Colors.black,
+        marginBottom: 4,
+    },
+    menuValue: {
+        fontFamily: Fonts.figtreeRegular,
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    emailText: {
+        textDecorationLine: 'underline',
+    },
+    editIcon: {
+        marginLeft: 10,
     },
     divider: {
         height: 1,
         backgroundColor: '#F3F4F6',
-        marginVertical: 4,
-    },
-    logoutWrapper: {
-        marginTop: 30,
-        borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
-        paddingTop: 20,
+        marginVertical: 5,
     },
     logoutButton: {
         flexDirection: 'row',
-        backgroundColor: '#FEF2F2',
-        borderRadius: 15,
+        backgroundColor: '#FF4C4C',
+        marginTop: 40,
+        borderRadius: 25, // Capsule shape
         paddingVertical: 12,
         paddingHorizontal: 20,
         alignItems: 'center',
-        alignSelf: 'flex-start',
+        alignSelf: 'flex-start', // Fit contentish
+        ...Shadows.button,
     },
     logoutText: {
-        color: '#EF4444',
+        color: Colors.white,
         fontFamily: Fonts.figtreebold,
         fontWeight: 'bold',
         fontSize: 16,
     },
+    // Estilos del Modal
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     modalContent: {
         backgroundColor: Colors.white,
         width: '85%',
-        borderRadius: 30,
-        padding: 25,
+        borderRadius: 25,
+        padding: 24,
+        alignItems: 'center',
         ...Shadows.button,
     },
     modalTitle: {
         fontSize: 20,
         fontFamily: Fonts.figtreebold,
-        fontWeight: 'bold',
         color: Colors.black,
-        marginBottom: 20,
+        marginBottom: 24,
         textAlign: 'center',
     },
     inputContainer: {
@@ -377,46 +335,53 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F3F4F6',
-        borderRadius: 15,
-        paddingHorizontal: 15,
-        marginBottom: 10,
+        borderRadius: 40,
+        paddingHorizontal: 20,
+        marginBottom: 8,
     },
     modalInput: {
         flex: 1,
         paddingVertical: 12,
         fontFamily: Fonts.figtreeRegular,
         fontSize: 16,
-        color: Colors.black,
+        color: '#4B5563',
+    },
+    clearButton: {
+        marginLeft: 10,
     },
     hintText: {
         fontSize: 12,
         fontFamily: Fonts.figtreeRegular,
         color: '#9CA3AF',
-        marginBottom: 25,
+        alignSelf: 'flex-start',
+        marginLeft: 20,
+        marginBottom: 32,
     },
     modalButtons: {
         flexDirection: 'row',
-        gap: 12,
+        width: '100%',
+        justifyContent: 'space-between',
     },
     cancelButton: {
-        flex: 1,
-        paddingVertical: 12,
+        backgroundColor: '#FF5E5E',
         borderRadius: 15,
+        paddingVertical: 12,
+        width: '46%',
         alignItems: 'center',
-        backgroundColor: '#F3F4F6',
+        ...Shadows.button,
     },
     saveButton: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 15,
-        alignItems: 'center',
         backgroundColor: Colors.primary,
+        borderRadius: 15,
+        paddingVertical: 12,
+        width: '46%',
+        alignItems: 'center',
+        ...Shadows.button,
     },
     buttonText: {
-        fontFamily: Fonts.figtreebold,
-        fontWeight: 'bold',
-        fontSize: 16,
         color: Colors.white,
-    }
+        fontFamily: Fonts.figtreebold,
+        fontSize: 16,
+    },
 });
 

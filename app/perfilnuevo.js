@@ -69,7 +69,7 @@ export default function PerfilNuevo() {
 
     return (
         <View style={styles.container}>
-            {/* Custom Decorated Header - Reused style */}
+            {/* Custom Decorated Header */}
             <View style={styles.headerBackground}>
                 <View style={styles.circlePink} />
                 <View style={styles.circleGreen} />
@@ -80,7 +80,7 @@ export default function PerfilNuevo() {
             {/* Header Content */}
             <View style={styles.headerContent}>
                 <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={32} color="black" />
+                    <Ionicons name="chevron-back" size={28} color="black" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{isEditMode ? 'Editar perfil' : 'Perfil nuevo'}</Text>
             </View>
@@ -201,31 +201,28 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.gray,
     },
     headerBackground: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: SCREEN_HEIGHT * 0.18,
+        height: SCREEN_HEIGHT * 0.12,
         backgroundColor: Colors.primary,
         overflow: 'hidden',
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
     },
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: SCREEN_HEIGHT * 0.08,
+        paddingVertical: 15,
         paddingHorizontal: 20,
-        marginBottom: 10,
+        backgroundColor: '#F3F4F6', // Light gray background
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
     },
     backButton: {
-        marginRight: 15,
+        padding: 5,
     },
     headerTitle: {
-        fontSize: 28,
+        fontSize: 22,
         fontFamily: Fonts.figtreebold,
         fontWeight: 'bold',
-        color: Colors.black,
+        color: Colors.primary,
+        marginLeft: 10,
     },
     // Deco Circles (Same as Admin)
     circlePink: {

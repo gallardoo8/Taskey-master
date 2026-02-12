@@ -1,7 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../components/BarraNavegacion";
-import { Colors, Fonts } from "../styles/globalStyles";
+import { Colors, Fonts, Shadows } from "../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -23,94 +24,117 @@ export default function PrincipalPapa() {
 
     return (
         <View style={styles.container}>
-            <Image
-                source={require("../assets/images/TKFNegro.png")}
-                style={styles.headerimage}
-                resizeMode="contain"
-            />
-            {/* nombre papa */}
-            <View style={[styles.rectangulo, styles.rectNombre]}>
-                <Image
-                    source={require("../assets/images/capinombre.png")}
-                    style={styles.imagenpapa}
-                    resizeMode="contain"
-                />
-                <Text style={styles.nombrepapa}>Gaby Pacheco</Text>
+            {/* Header Section with Decorative Circles */}
+            <View style={styles.header}>
+                <View style={[styles.circle, styles.circlePink]} />
+                <View style={[styles.circle, styles.circleCyan]} />
+                <View style={[styles.circle, styles.circleOrange]} />
+
+                <View style={styles.headerContent}>
+                    <Image
+                        source={require("../assets/images/TASK_KEY.png")}
+                        style={styles.logo}
+                        tintColor="white"
+                        resizeMode="contain"
+                    />
+
+                    <View style={styles.welcomeRow}>
+                        <View style={styles.welcomeTextColumn}>
+                            <Text style={styles.welcomeText}>¡Hola,</Text>
+                            <Text style={styles.userNameText}>Gaby Pacheco!</Text>
+                        </View>
+                        <View style={styles.parentAvatarWrapper}>
+                            <Image
+                                source={require("../assets/images/capinombre.png")}
+                                style={styles.parentAvatar}
+                                resizeMode="contain"
+                            />
+                        </View>
+                    </View>
+                </View>
             </View>
-            <Text style={styles.welcome}>Bienvenid@!</Text>
-            {/* botones de administrar perfiles y tareas */}
-            <TouchableOpacity style={[styles.boton, styles.adminTareasBoton]} onPress={handleAdminTareasPress}>
-                <Image
-                    source={require("../assets/images/tareas.png")}
-                    style={styles.imagentarea}
-                    resizeMode="contain"
-                />
-                <Text style={styles.tarea}>Administrar <Text style={styles.highlightTareas}>Tareas</Text></Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.boton, styles.adminPerfilesBoton]} onPress={handleAdminPerfilesPress}>
-                <Image
-                    source={require("../assets/images/ninos.png")}
-                    style={styles.imagenpefiles}
-                    resizeMode="contain"
-                />
-                <Text style={styles.tarea}>Administrar <Text style={styles.highlightTareas}>Perfiles</Text></Text>
-            </TouchableOpacity>
+            <View style={styles.content}>
+                {/* Admin Quick Actions */}
+                <View style={styles.quickActions}>
+                    <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#FF824C' }]} onPress={handleAdminTareasPress}>
+                        <View style={styles.actionIconContainer}>
+                            <Image source={require("../assets/images/tareas.png")} style={styles.actionIcon} resizeMode="contain" />
+                        </View>
+                        <Text style={styles.actionText}>Administrar{"\n"}<Text style={styles.actionBold}>Tareas</Text></Text>
+                    </TouchableOpacity>
 
-            <Text style={styles.perfiles}>Perfiles</Text>
-            {/* perfil cons */}
-            <TouchableOpacity
-                style={[styles.botonPerfiles, styles.botoncons]}
-                onPress={() => handleBotonPerfilPress('Cons', require("../assets/images/capicons.png"))}
-            >
-                <Image
-                    source={require("../assets/images/capicons.png")}
-                    style={styles.imagenperfilcons}
-                    resizeMode="contain"
-                />
-                <Text style={styles.textcons}>Cons</Text>
-                <Image
-                    source={require("../assets/images/arrow.png")}
-                    style={styles.arrow1}
-                    resizeMode="contain"
-                />
-            </TouchableOpacity>
-            {/* perfil angel */}
-            <TouchableOpacity
-                style={[styles.botonPerfiles, styles.botonangel]}
-                onPress={() => handleBotonPerfilPress('Angel', require("../assets/images/capiangel.png"))}
-            >
-                <Image
-                    source={require("../assets/images/capiangel.png")}
-                    style={styles.imagenperfilangel}
-                    resizeMode="contain"
-                />
-                <Text style={styles.textcons}>Angel</Text>
-                <Image
-                    source={require("../assets/images/arrow.png")}
-                    style={styles.arrow2}
-                    resizeMode="contain"
-                />
-            </TouchableOpacity>
-            {/* perfil fer */}
-            <TouchableOpacity
-                style={[styles.botonPerfiles, styles.botonfer]}
-                onPress={() => handleBotonPerfilPress('Fer', require("../assets/images/capifer.png"))}
-            >
-                <Image
-                    source={require("../assets/images/capifer.png")}
-                    style={styles.imagenperfilfer}
-                    resizeMode="contain"
-                />
-                <Text style={styles.textcons}>Fer</Text>
-                <Image
-                    source={require("../assets/images/arrow.png")}
-                    style={styles.arrow3}
-                    resizeMode="contain"
-                />
-            </TouchableOpacity>
+                    <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#00AEEB' }]} onPress={handleAdminPerfilesPress}>
+                        <View style={styles.actionIconContainer}>
+                            <Image source={require("../assets/images/ninos.png")} style={styles.actionIcon} resizeMode="contain" />
+                        </View>
+                        <Text style={styles.actionText}>Administrar{"\n"}<Text style={styles.actionBold}>Perfiles</Text></Text>
+                    </TouchableOpacity>
+                </View>
 
-            {/* barra de navegación inferior */}
+                {/* Profiles Section */}
+                <View style={styles.profilesSection}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Perfiles</Text>
+                        <TouchableOpacity onPress={handleAdminPerfilesPress}>
+                            <Text style={styles.seeAllText}>Ver todos</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.profilesList}>
+                        {/* Profile Cons */}
+                        <TouchableOpacity
+                            style={styles.profileCard}
+                            onPress={() => handleBotonPerfilPress('Cons', require("../assets/images/capicons.png"))}
+                        >
+                            <View style={[styles.avatarCircle, { backgroundColor: '#DDD6FE' }]}>
+                                <Image
+                                    source={require("../assets/images/capicons.png")}
+                                    style={styles.profileAvatar}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                            <Text style={styles.profileName}>Cons</Text>
+                            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+                        </TouchableOpacity>
+
+                        {/* Profile Angel */}
+                        <TouchableOpacity
+                            style={styles.profileCard}
+                            onPress={() => handleBotonPerfilPress('Angel', require("../assets/images/capiangel.png"))}
+                        >
+                            <View style={[styles.avatarCircle, { backgroundColor: '#FEF3C7' }]}>
+                                <Image
+                                    source={require("../assets/images/capiangel.png")}
+                                    style={styles.profileAvatar}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                            <Text style={styles.profileName}>Angel</Text>
+                            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+                        </TouchableOpacity>
+
+                        {/* Profile Fer */}
+                        <TouchableOpacity
+                            style={styles.profileCard}
+                            onPress={() => handleBotonPerfilPress('Fer', require("../assets/images/capifer.png"))}
+                        >
+                            <View style={[styles.avatarCircle, { backgroundColor: '#DCFCE7' }]}>
+                                <Image
+                                    source={require("../assets/images/capifer.png")}
+                                    style={styles.profileAvatar}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                            <Text style={styles.profileName}>Fer</Text>
+                            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <View style={{ height: 100 }} />
+            </View>
+
             <BarraNavegacion activeTab="inicio" />
         </View>
     );
@@ -119,170 +143,187 @@ export default function PrincipalPapa() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.gray,
-        position: 'relative',
+        backgroundColor: '#F3F4F6',
     },
-
-    headerimage: {
-        top: SCREEN_HEIGHT * 0.07,
-        left: SCREEN_WIDTH * 0.25,
-        width: SCREEN_WIDTH * 0.5,
-        height: SCREEN_HEIGHT * 0.04,
-    },
-
-    rectangulo: {
-
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-
-    rectNombre: {
-        top: SCREEN_HEIGHT * 0.08,
-        width: SCREEN_WIDTH * 0.9,
-        height: SCREEN_HEIGHT * 0.085,
-        left: SCREEN_WIDTH * 0.05,
-        borderRadius: 20,
+    header: {
+        height: SCREEN_HEIGHT * 0.32,
         backgroundColor: Colors.primary,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-    },
-
-    nombrepapa: {
-        color: Colors.white,
-        fontSize: 24,
-        fontWeight: '700',
-        fontFamily: Fonts.figtreebold,
-        marginLeft: 15,
-    },
-
-    imagenpapa: {
-        width: SCREEN_WIDTH * 0.15,
-        height: SCREEN_HEIGHT * 0.06,
-    },
-    welcome: {
-        color: Colors.black,
-        fontSize: 27,
-        fontWeight: '700',
-        fontFamily: Fonts.figtreebold,
-        left: SCREEN_WIDTH * 0.05,
-        top: SCREEN_HEIGHT * 0.11,
-    },
-    boton: {
-        position: 'absolute',
-        width: SCREEN_WIDTH * 0.43,
-        height: SCREEN_WIDTH * 0.35,
-        backgroundColor: Colors.white,
-        borderRadius: 20,
-        alignItems: 'center',
+        overflow: 'hidden',
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 3,
+        paddingTop: 20,
+        borderBottomLeftRadius: 40,
+        borderBottomRightRadius: 40,
+        ...Shadows.button,
     },
-    adminTareasBoton: {
-        top: SCREEN_HEIGHT * 0.3,
-        left: SCREEN_WIDTH * 0.05,
-        backgroundColor: '#FF824C',
+    circle: {
+        position: 'absolute',
+        borderRadius: 1000,
     },
-    adminPerfilesBoton: {
-        top: SCREEN_HEIGHT * 0.3,
-        right: SCREEN_WIDTH * 0.05,
-        backgroundColor: '#00AEEB',
-    },
-    imagentarea: {
-        width: SCREEN_WIDTH * 0.15,
-        height: SCREEN_WIDTH * 0.15,
-        marginBottom: 10,
-    },
-    imagenpefiles: {
-        width: SCREEN_WIDTH * 0.15,
-        height: SCREEN_WIDTH * 0.15,
-        marginBottom: 10,
-    },
-    tarea: {
-        color: Colors.white,
-        fontSize: 16,
-        fontWeight: '600',
-        fontFamily: Fonts.figtreeSemiBold,
-        textAlign: 'center',
-    },
-    highlightTareas: {
+    circlePink: {
+        width: 140,
+        height: 140,
         backgroundColor: Colors.pink,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
+        top: -40,
+        left: -40,
+        opacity: 0.6,
     },
-    perfiles: {
-        position: 'absolute',
-        color: Colors.black,
-        fontSize: 25,
-        fontWeight: '700',
-        fontFamily: Fonts.figtreebold,
-        top: SCREEN_HEIGHT * 0.49,
-        left: SCREEN_WIDTH * 0.05,
+    circleCyan: {
+        width: 100,
+        height: 100,
+        backgroundColor: '#06B6D4',
+        bottom: -20,
+        right: 40,
+        opacity: 0.6,
     },
-    botonPerfiles: {
-        position: 'absolute',
-        width: SCREEN_WIDTH * 0.9,
-        height: SCREEN_HEIGHT * 0.065,
-        backgroundColor: Colors.white,
-        borderRadius: 15,
+    circleOrange: {
+        width: 60,
+        height: 60,
+        backgroundColor: '#F59E0B',
+        top: 40,
+        right: -10,
+        opacity: 0.6,
+    },
+    headerContent: {
+        paddingHorizontal: 25,
+        zIndex: 10,
+    },
+    logo: {
+        width: 150,
+        height: 40,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    welcomeRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 3,
+        justifyContent: 'space-between',
+        marginTop: 10,
     },
-    botoncons: {
-        top: SCREEN_HEIGHT * 0.55,
-        left: SCREEN_WIDTH * 0.05,
-    },
-    botonangel: {
-        top: SCREEN_HEIGHT * 0.625,
-        left: SCREEN_WIDTH * 0.05,
-    },
-    botonfer: {
-        top: SCREEN_HEIGHT * 0.7,
-        left: SCREEN_WIDTH * 0.05,
-    },
-    imagenperfilcons: {
-        width: 50,
-        height: 50,
-        marginRight: 15,
-    },
-    imagenperfilangel: {
-        width: 50,
-        height: 50,
-        marginRight: 15,
-    },
-    imagenperfilfer: {
-        width: 50,
-        height: 50,
-        marginRight: 15,
-    },
-    textcons: {
-        color: Colors.black,
-        fontSize: 20,
-        fontWeight: '600',
-        fontFamily: Fonts.figtreeSemiBold,
+    welcomeTextColumn: {
         flex: 1,
     },
-    arrow1: {
-        width: 20,
-        height: 20,
+    welcomeText: {
+        fontSize: 22,
+        fontFamily: Fonts.figtreeRegular,
+        color: Colors.white,
+        opacity: 0.9,
     },
-    arrow2: {
-        width: 20,
-        height: 20,
+    userNameText: {
+        fontSize: 28,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        color: Colors.white,
     },
-    arrow3: {
-        width: 20,
-        height: 20,
+    parentAvatarWrapper: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderWidth: 2,
+        borderColor: Colors.white,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-})
+    parentAvatar: {
+        width: 50,
+        height: 50,
+    },
+    content: {
+        flex: 1,
+        paddingHorizontal: 20,
+        marginTop: 25,
+    },
+    quickActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 30,
+    },
+    actionCard: {
+        width: (SCREEN_WIDTH - 55) / 2,
+        height: 120,
+        borderRadius: 24,
+        padding: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...Shadows.button,
+        elevation: 4,
+    },
+    actionIconContainer: {
+        width: 45,
+        height: 45,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    actionIcon: {
+        width: 28,
+        height: 28,
+        tintColor: Colors.white,
+    },
+    actionText: {
+        color: Colors.white,
+        fontSize: 14,
+        fontFamily: Fonts.figtreeRegular,
+        textAlign: 'center',
+    },
+    actionBold: {
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    profilesSection: {
+        flex: 1,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    sectionTitle: {
+        fontSize: 22,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        color: Colors.black,
+    },
+    seeAllText: {
+        fontSize: 14,
+        fontFamily: Fonts.figtreebold,
+        color: Colors.primary,
+        fontWeight: 'bold',
+    },
+    profilesList: {
+        gap: 12,
+    },
+    profileCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.white,
+        padding: 12,
+        borderRadius: 20,
+        ...Shadows.button,
+        shadowOpacity: 0.05,
+        elevation: 2,
+    },
+    avatarCircle: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 15,
+    },
+    profileAvatar: {
+        width: 35,
+        height: 35,
+    },
+    profileName: {
+        flex: 1,
+        fontSize: 18,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        color: Colors.black,
+    }
+});

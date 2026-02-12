@@ -1,74 +1,83 @@
-import React, { useState } from "react";
-import {View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, TextInput} from "react-native";
+import { Ionicons } from '@expo/vector-icons';
 import Checkbox from 'expo-checkbox';
-import {useRouter} from 'expo-router';
-import {Colors, Fonts, FontSizes, Spacing, BorderRadius, Shadows} from "../styles/globalStyles";
-import BackgroundDecorations from "../components/BackgroundDecorations";
+import { useRouter } from 'expo-router';
+import { useState } from "react";
+import { Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Colors, Fonts } from "../styles/globalStyles";
 
-const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export default function RegistroPapa(){
+export default function RegistroPapa() {
     const router = useRouter();
     const [isChecked, setIsChecked] = useState(false);
-    
+
     const handlePrincipalPapaPress = () => {
-        router.push('/principalpapa');
+        router.replace('/principalpapa');
     };
-    
+
     const handleIniciarSesion = () => {
         router.push('/loginpapa');
     };
-    
-    return(
-        <View style = {styles.container}>
-            
-            <Text style = {styles.header}>Registrarse</Text>
-            
-            <View style = {styles.cardContainer}>
-            <TextInput
-                style = {styles.input}
-                placeholder = "Cree un usuario"
-                placeholderTextColor = {Colors.darkgraytext}
-            />
-            
-             <TextInput
-                style = {styles.input}
-                placeholder = "Correo"
-                placeholderTextColor = {Colors.darkgraytext}
-            />
 
-            <TextInput
-                style = {styles.input}
-                placeholder = "Contraseña"
-                placeholderTextColor = {Colors.darkgraytext}
-                secureTextEntry={true}
-            />
-            
-            {/* Checkbox para términos y condiciones */}
-            <View style = {styles.checkboxContainer}>
-                <Checkbox
-                    style = {styles.checkbox}
-                    value = {isChecked}
-                    onValueChange = {setIsChecked}
-                    color = {isChecked ? Colors.primary : Colors.darkgraytext}
-                />
-                <Text style = {styles.checkboxLabel}>
-                    Acepto los términos y condiciones
-                </Text>
-            </View>
-            
-            <TouchableOpacity 
-                style = {[styles.button, !isChecked && styles.buttonDisabled] }
-                disabled = {!isChecked}
-                onPress={handlePrincipalPapaPress}
-            >
-                <Text style = {styles.buttonText}>Registrarse</Text>
+    return (
+        <View style={styles.container}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <Ionicons name="chevron-back" size={32} color="white" />
             </TouchableOpacity>
+
+            <Text style={styles.header}>Registrarse</Text>
+
+            <View style={styles.cardContainer}>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Cree un usuario"
+                    placeholderTextColor={Colors.darkgraytext}
+                />
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="Correo"
+                    placeholderTextColor={Colors.darkgraytext}
+                />
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="Contraseña"
+                    placeholderTextColor={Colors.darkgraytext}
+                    secureTextEntry={true}
+                />
+
+                {/* Checkbox para términos y condiciones */}
+                <View style={styles.checkboxContainer}>
+                    <Checkbox
+                        style={styles.checkbox}
+                        value={isChecked}
+                        onValueChange={setIsChecked}
+                        color={isChecked ? Colors.primary : Colors.darkgraytext}
+                    />
+                    <Text style={styles.checkboxLabel}>
+                        Acepto los{' '}
+                        <Text
+                            style={styles.linkText}
+                            onPress={() => router.push('/terminosycondiciones')}
+                        >
+                            términos y condiciones
+                        </Text>
+                    </Text>
+                </View>
+
+                <TouchableOpacity
+                    style={[styles.button, !isChecked && styles.buttonDisabled]}
+                    disabled={!isChecked}
+                    onPress={handlePrincipalPapaPress}
+                >
+                    <Text style={styles.buttonText}>Registrarse</Text>
+                </TouchableOpacity>
             </View>
-            
-            <Text style = {styles.textobelow}>¿Ya tienes cuenta?</Text>
-            <TouchableOpacity style = {styles.buttonTransparent} onPress={handleIniciarSesion}>
-                <Text style = {styles.buttonIniciarSesion}>Inicia sesión</Text>
+
+            <Text style={styles.textobelow}>¿Ya tienes cuenta?</Text>
+            <TouchableOpacity style={styles.buttonTransparent} onPress={handleIniciarSesion}>
+                <Text style={styles.buttonIniciarSesion}>Inicia sesión</Text>
             </TouchableOpacity>
         </View>
     )
@@ -82,6 +91,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
     },
+    backButton: {
+        position: 'absolute',
+        top: 50,
+        left: 20,
+        zIndex: 20,
+        padding: 10,
+        backgroundColor: 'rgba(0,0,0,0.1)', // Subtle background to see white on gray
+        borderRadius: 20,
+    },
     header: {
         width: SCREEN_WIDTH * 0.8,
         fontSize: 38,
@@ -90,7 +108,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: SCREEN_HEIGHT * 0.01,
     },
-    cardContainer:{
+    cardContainer: {
         backgroundColor: Colors.white,
         paddingHorizontal: 25,
         paddingVertical: 30,
@@ -102,9 +120,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 10,
-        elevation: 5,        
+        elevation: 5,
     },
-    input:{
+    input: {
         backgroundColor: Colors.gray,
         borderRadius: 30,
         paddingHorizontal: 20,
@@ -130,7 +148,12 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.figtreeRegular,
         flex: 1,
     },
-    button:{
+    linkText: {
+        color: Colors.primary,
+        fontFamily: Fonts.figtreebold,
+        textDecorationLine: 'underline',
+    },
+    button: {
         backgroundColor: Colors.primary,
         borderRadius: 30,
         paddingVertical: 15,
@@ -147,20 +170,20 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.darkgraytext,
         opacity: 0.5,
     },
-    buttonText:{
+    buttonText: {
         color: Colors.white,
         fontSize: 20,
         fontWeight: 'figtreebold',
         fontFamily: Fonts.figtreebold,
     },
-    textobelow:{
+    textobelow: {
         color: Colors.black,
         fontSize: 18,
         top: SCREEN_HEIGHT * 0.05,
         fontFamily: Fonts.figtreeRegular,
         textAlign: 'center',
     },
-    buttonIniciarSesion:{
+    buttonIniciarSesion: {
         color: Colors.green,
         fontSize: 21,
         fontWeight: 'figtreebold',
@@ -168,7 +191,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         top: SCREEN_HEIGHT * 0.03,
     },
-    buttonTransparent:{
+    buttonTransparent: {
         backgroundColor: 'transparent',
         paddingVertical: 10,
         marginTop: 10,
