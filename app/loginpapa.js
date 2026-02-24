@@ -13,15 +13,21 @@ export default function LoginPapa() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleRegistrarsePress = async () => {
+    // Redirige a la pantalla de registro
+    const handleRegistrarsePress = () => {
+        router.push('/registropapa');
+    };
+
+    // Funcion para iniciar sesión
+    const handleLogin = async () => {
         // Validar campos
         if (!email || !password) {
             Alert.alert("Error", "Todos los campos son obligatorios");
             return;
         }
-        // Pone el estado de loading en true para mostrar el indicador de carga  en lo que espera al servidor
+        // Pone el estado de loading en true para mostrar el indicador de carga en lo que espera al servidor
         setLoading(true);
-        // Intenta iniciar sesión
+        // Intenta iniciar sesión
         try {
             const data = await loginUser(email, password);
             router.replace('/principalpapa');
@@ -32,10 +38,6 @@ export default function LoginPapa() {
             // Pone el estado de loading en false para ocultar el indicador de carga
             setLoading(false);
         }
-    };
-
-    const handlePrincipalPapaPress = () => {
-        router.replace('/principalpapa');
     };
 
     return (
@@ -52,16 +54,23 @@ export default function LoginPapa() {
                     style={styles.input}
                     placeholder="Correo"
                     placeholderTextColor={Colors.darkgraytext}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                 />
 
                 <TextInput
                     style={styles.input}
                     placeholder="Contraseña"
                     placeholderTextColor={Colors.darkgraytext}
+                    secureTextEntry={true}
+                    value={password}
+                    onChangeText={setPassword}
                 />
 
-                <TouchableOpacity style={styles.button} onPress={handlePrincipalPapaPress}>
-                    <Text style={styles.buttonText}>Iniciar Sesión</Text>
+                <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} disabled={loading} onPress={handleLogin}>
+                    <Text style={styles.buttonText}>{loading ? "Cargando..." : "Iniciar Sesión"}</Text>
                 </TouchableOpacity>
             </View>
 
@@ -148,6 +157,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 5,
         elevation: 8,
+    },
+    buttonDisabled: {
+        backgroundColor: Colors.darkgraytext,
+        opacity: 0.5,
     },
     buttonText: {
         color: Colors.white,
