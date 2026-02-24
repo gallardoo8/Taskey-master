@@ -1,15 +1,37 @@
+import { loginUser } from '../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Colors, Fonts } from "../styles/globalStyles";
+import { useState } from 'react';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function LoginPapa() {
     const router = useRouter();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleRegistrarsePress = () => {
-        router.push('/registropapa');
+    const handleRegistrarsePress = async () => {
+        // Validar campos
+        if (!email || !password) {
+            Alert.alert("Error", "Todos los campos son obligatorios");
+            return;
+        }
+        // Pone el estado de loading en true para mostrar el indicador de carga  en lo que espera al servidor
+        setLoading(true);
+        // Intenta iniciar sesión
+        try {
+            const data = await loginUser(email, password);
+            router.replace('/principalpapa');
+        } catch (error) {
+            // Si hay un error, muestra un alert con el error
+            Alert.alert("Error", error.message);
+        } finally {
+            // Pone el estado de loading en false para ocultar el indicador de carga
+            setLoading(false);
+        }
     };
 
     const handlePrincipalPapaPress = () => {

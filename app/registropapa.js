@@ -1,21 +1,46 @@
+import { registerUser } from "../services/api";
 import { Ionicons } from '@expo/vector-icons';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { useState } from "react";
-import { Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Colors, Fonts } from "../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function RegistroPapa() {
+    // Variables de estado del registro
     const router = useRouter();
     const [isChecked, setIsChecked] = useState(false);
+    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    const handlePrincipalPapaPress = () => {
-        router.replace('/principalpapa');
+    // Funcion para el registro
+    const handlePrincipalPapaPress = async () => {
+        // Validacion de campos
+        if (!username || !email || !password) {
+            Alert.alert("Error", "Todos los campos son obligatorios");
+            return;
+        }
+        // Pone el estado de loading en true para mostrar el indicador de carga en lo que espera respuesta del servidor
+        setLoading(true);
+        // Intenta registrar el usuario
+        try {
+            const data = await registerUser(username, email, password);
+            router.replace('/principalpapa');
+        } catch (error) {
+            // Si hay un error, muestra un alert con el error
+            Alert.alert("Error", error.message);
+        } finally {
+            // Pone el estado de loading en false para ocultar el indicador de carga
+            setLoading(false);
+        }
     };
 
     const handleIniciarSesion = () => {
+        // Navega a la pantalla de login
         router.push('/loginpapa');
     };
 
@@ -30,14 +55,20 @@ export default function RegistroPapa() {
             <View style={styles.cardContainer}>
                 <TextInput
                     style={styles.input}
-                    placeholder="Cree un usuario"
+                    placeholder="Usuario"
                     placeholderTextColor={Colors.darkgraytext}
+                    value={username}
+                    onChangeText={setUsername}
                 />
 
                 <TextInput
                     style={styles.input}
                     placeholder="Correo"
                     placeholderTextColor={Colors.darkgraytext}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                 />
 
                 <TextInput
@@ -45,6 +76,8 @@ export default function RegistroPapa() {
                     placeholder="Contraseña"
                     placeholderTextColor={Colors.darkgraytext}
                     secureTextEntry={true}
+                    value={password}
+                    onChangeText={setPassword}
                 />
 
                 {/* Checkbox para términos y condiciones */}
@@ -67,11 +100,11 @@ export default function RegistroPapa() {
                 </View>
 
                 <TouchableOpacity
-                    style={[styles.button, !isChecked && styles.buttonDisabled]}
-                    disabled={!isChecked}
+                    style={[styles.button, (!isChecked || loading) && styles.buttonDisabled]}
+                    disabled={!isChecked || loading}
                     onPress={handlePrincipalPapaPress}
                 >
-                    <Text style={styles.buttonText}>Registrarse</Text>
+                    <Text style={styles.buttonText}>{loading ? "Cargando..." : "Registrarse"}</Text>
                 </TouchableOpacity>
             </View>
 
