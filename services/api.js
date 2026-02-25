@@ -1,5 +1,4 @@
-// Servicio de conexion del front con el back usando APIs
-const API_URL = "https://taskkeyback.azurewebsites.net/api";
+import { API_URL } from "@env";
 
 // REGISTRO
 export async function registerUser(username, email, password) {
