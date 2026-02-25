@@ -1,4 +1,6 @@
-import { API_URL } from ".env";
+import Constants from "expo-constants";
+
+const API_URL = Constants.expoConfig?.extra?.API_URL;
 
 // REGISTRO
 export async function registerUser(username, email, password) {

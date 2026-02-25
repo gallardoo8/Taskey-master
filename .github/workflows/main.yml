@@ -22,10 +22,6 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Crear archivo .env
-        run: |
-          echo "API_URL=${{ secrets.API_URL }}" > .env
-
       - name: Configurar Expo CLI
         uses: expo/expo-github-action@v8
         with:
@@ -33,5 +29,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publicar actualización Over-The-Air
+        env:
+          API_URL: ${{ secrets.API_URL }}
         run: |
           eas update --branch preview --message "Actualización automática desde GitHub"
