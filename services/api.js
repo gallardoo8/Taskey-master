@@ -3,12 +3,12 @@ import Constants from "expo-constants";
 const API_URL = Constants.expoConfig?.extra?.API_URL;
 
 // REGISTRO
-export async function registerUser(username, email, password) {
+export async function registerUser(nombre, apellido, email, password) {
     // Hace una peticion POST a la API para registrar un usuario
     const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ nombre, apellido, email, password }),
     });
     // Obtiene la respuesta de la API
     const data = await response.json();

@@ -12,7 +12,8 @@ export default function RegistroPapa() {
     // Variables de estado del registro
     const router = useRouter();
     const [isChecked, setIsChecked] = useState(false);
-    const [username, setUsername] = useState("");
+    const [name, setName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ export default function RegistroPapa() {
     // Funcion para el registro
     const handlePrincipalPapaPress = async () => {
         // Validacion de campos
-        if (!username || !email || !password) {
+        if (!name || !lastName || !email || !password) {
             Alert.alert("Error", "Todos los campos son obligatorios");
             return;
         }
@@ -28,7 +29,7 @@ export default function RegistroPapa() {
         setLoading(true);
         // Intenta registrar el usuario
         try {
-            const data = await registerUser(username, email, password);
+            const data = await registerUser(name, lastName, email, password);
             router.replace('/principalpapa');
         } catch (error) {
             // Si hay un error, muestra un alert con el error
@@ -55,12 +56,18 @@ export default function RegistroPapa() {
             <View style={styles.cardContainer}>
                 <TextInput
                     style={styles.input}
-                    placeholder="Nombre de usuario"
+                    placeholder="Nombre"
                     placeholderTextColor={Colors.darkgraytext}
-                    value={username}
-                    onChangeText={setUsername}
+                    value={name}
+                    onChangeText={setName}
                 />
-
+                <TextInput
+                    style={styles.input}
+                    placeholder="Apellido"
+                    placeholderTextColor={Colors.darkgraytext}
+                    value={lastName}
+                    onChangeText={setLastName}
+                />
                 <TextInput
                     style={styles.input}
                     placeholder="Correo"
