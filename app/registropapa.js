@@ -55,7 +55,7 @@ export default function RegistroPapa() {
             <View style={styles.cardContainer}>
                 <TextInput
                     style={styles.input}
-                    placeholder="Usuario"
+                    placeholder="Nombre de usuario"
                     placeholderTextColor={Colors.darkgraytext}
                     value={username}
                     onChangeText={setUsername}
