@@ -2,24 +2,6 @@ import Constants from "expo-constants";
 
 const API_URL = Constants.expoConfig?.extra?.API_URL;
 
-console.log("API_URL:", API_URL);
-
-// Funcion auxiliar para procesar la respuesta del servidor
-async function handleResponse(response, errorMsg) {
-    const text = await response.text();
-    let data;
-    try {
-        data = JSON.parse(text);
-    } catch {
-        // El servidor no devolvio JSON, muestra la URL y la respuesta real
-        throw new Error(`${errorMsg} (Status: ${response.status}, URL: ${response.url})`);
-    }
-    if (!response.ok) {
-        throw new Error(data.detail || errorMsg);
-    }
-    return data;
-}
-
 // REGISTRO
 export async function registerUser(username, email, password) {
     // Hace una peticion POST a la API para registrar un usuario
@@ -28,18 +10,32 @@ export async function registerUser(username, email, password) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password }),
     });
-    return handleResponse(response, "Error al registrarse");
+    // Obtiene la respuesta de la API
+    const data = await response.json();
+    // Si la respuesta no es exitosa, lanza un error
+    if (!response.ok) {
+        throw new Error(data.detail || "Error al registrarse");
+    }
+    // Retorna la respuesta de la API
+    return data;
 }
 
 // LOGIN
 export async function loginUser(email, password) {
-    // Hace una peticion POST a la API para iniciar sesión
+    // Hace una peticion POST a la API para iniciar sesión
     const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
     });
-    return handleResponse(response, "Correo o contraseña incorrectos");
+    // Obtiene la respuesta de la API
+    const data = await response.json();
+    // Si la respuesta no es exitosa, lanza un error
+    if (!response.ok) {
+        throw new Error(data.detail || "Correo o contraseña incorrectos");
+    }
+
+    return data;
 }
 
 // OBTENER PERFIL
@@ -51,5 +47,12 @@ export async function obtenerPerfil(token) {
             Authorization: `Bearer ${token}`,
         },
     });
-    return handleResponse(response, "No autorizado");
+    // Obtiene la respuesta de la API
+    const data = await response.json();
+    // Si la respuesta no es exitosa, lanza un error
+    if (!response.ok) {
+        throw new Error(data.detail || "No autorizado");
+    }
+    // Retorna la respuesta de la API
+    return data;
 }
