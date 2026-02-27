@@ -56,3 +56,21 @@ export async function obtenerPerfil(token) {
     // Retorna la respuesta de la API
     return data;
 }
+
+// LOGIN HIJO
+export async function loginHijo(codigo) {
+    // Hace una peticion POST a la API para autenticar al hijo con su código
+    const response = await fetch(`${API_URL}/auth_hijos/auth_codigo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo }),
+    });
+    // Obtiene la respuesta de la API
+    const data = await response.json();
+    // Si la respuesta no es exitosa, lanza un error
+    if (!response.ok) {
+        throw new Error(data.detail || "Código inválido o expirado");
+    }
+    // Retorna la respuesta de la API
+    return data;
+}

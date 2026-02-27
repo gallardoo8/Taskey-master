@@ -1,20 +1,42 @@
+import { loginHijo } from '../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useState } from 'react';
+import { Alert, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Colors, Fonts, Shadows } from "../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function LoginHijo() {
     const router = useRouter();
+    const [codigo, setCodigo] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const handleBackPress = () => {
         router.back();
     };
 
-    const handleIniciarSesion = () => {
-        // En una app real, aquí se validaría el código
-        router.push('/perfilhijo');
+    // Funcion para iniciar sesión con el código
+    const handleIniciarSesion = async () => {
+        // Validar que se haya ingresado un código
+        if (!codigo) {
+            Alert.alert("Error", "Ingresa tu código de acceso");
+            return;
+        }
+
+        // Pone el estado de loading en true
+        setLoading(true);
+        // Intenta autenticar al hijo
+        try {
+            const data = await loginHijo(codigo);
+            router.replace('/perfilhijo');
+        } catch (error) {
+            // Si hay un error, muestra un alert con el error
+            Alert.alert("Error", error.message);
+        } finally {
+            // Pone el estado de loading en false
+            setLoading(false);
+        }
     };
 
     return (
@@ -33,19 +55,16 @@ export default function LoginHijo() {
                 <View style={styles.cardContainer}>
                     <TextInput
                         style={styles.input}
-                        placeholder="Usuario"
-                        placeholderTextColor={Colors.darkgraytext}
-                    />
-
-                    <TextInput
-                        style={styles.input}
                         placeholder="Código"
                         placeholderTextColor={Colors.darkgraytext}
                         keyboardType="numeric"
+                        value={codigo}
+                        onChangeText={setCodigo}
+                        maxLength={6}
                     />
 
-                    <TouchableOpacity style={styles.button} onPress={handleIniciarSesion}>
-                        <Text style={styles.buttonText}>Iniciar sesión</Text>
+                    <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} disabled={loading} onPress={handleIniciarSesion}>
+                        <Text style={styles.buttonText}>{loading ? "Cargando..." : "Iniciar sesión"}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -119,6 +138,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         ...Shadows.button,
+    },
+    buttonDisabled: {
+        backgroundColor: Colors.darkgraytext,
+        opacity: 0.5,
     },
     buttonText: {
         color: Colors.white,
