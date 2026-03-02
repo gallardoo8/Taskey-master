@@ -18,6 +18,9 @@ export default function LoginHijo() {
 
     // Funcion para iniciar sesión con el código
     const handleIniciarSesion = async () => {
+        // En una app real, aquí se validaría el código
+        router.push('/perfilhijo');
+        /*
         // Validar que se haya ingresado un código
         if (!codigo) {
             Alert.alert("Error", "Ingresa tu código de acceso");
@@ -37,6 +40,7 @@ export default function LoginHijo() {
             // Pone el estado de loading en false
             setLoading(false);
         }
+        */
     };
 
     return (
