@@ -74,3 +74,22 @@ export async function loginHijo(codigo) {
     // Retorna la respuesta de la API
     return data;
 }
+
+// OBTENER PERFIL HIJO
+export async function obtenerPerfilHijo(token) {
+    // Hace una peticion GET a la API para obtener el perfil del hijo autenticado
+    const response = await fetch(`${API_URL}/auth_hijos/me_hijo`, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    // Obtiene la respuesta de la API
+    const data = await response.json();
+    // Si la respuesta no es exitosa, lanza un error
+    if (!response.ok) {
+        throw new Error(data.detail || "No autorizado");
+    }
+    // Retorna la respuesta de la API
+    return data;
+}

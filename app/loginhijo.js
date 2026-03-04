@@ -1,4 +1,5 @@
 import { loginHijo } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -18,9 +19,6 @@ export default function LoginHijo() {
 
     // Funcion para iniciar sesión con el código
     const handleIniciarSesion = async () => {
-        // En una app real, aquí se validaría el código
-        router.push('/perfilhijo');
-        /*
         // Validar que se haya ingresado un código
         if (!codigo) {
             Alert.alert("Error", "Ingresa tu código de acceso");
@@ -32,6 +30,11 @@ export default function LoginHijo() {
         // Intenta autenticar al hijo
         try {
             const data = await loginHijo(codigo);
+
+            // Guarda el token y datos del hijo en AsyncStorage
+            await AsyncStorage.setItem('child_token', data.access_token);
+            await AsyncStorage.setItem('child_data', JSON.stringify(data.child));
+
             router.replace('/perfilhijo');
         } catch (error) {
             // Si hay un error, muestra un alert con el error
@@ -40,7 +43,6 @@ export default function LoginHijo() {
             // Pone el estado de loading en false
             setLoading(false);
         }
-        */
     };
 
     return (

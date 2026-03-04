@@ -1,5 +1,8 @@
 import { useRouter } from 'expo-router';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { obtenerPerfilHijo } from '../services/api';
 import BarraNavegacion from "../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../styles/globalStyles";
 
@@ -7,6 +10,47 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function PerfilHijo() {
     const router = useRouter();
+    const [childData, setChildData] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const cargarPerfil = async () => {
+            try {
+                // Leer datos guardados en AsyncStorage (cache)
+                const cachedData = await AsyncStorage.getItem('child_data');
+                if (cachedData) {
+                    setChildData(JSON.parse(cachedData));
+                }
+
+                // Intentar obtener datos frescos del servidor
+                const token = await AsyncStorage.getItem('child_token');
+                if (token) {
+                    const perfil = await obtenerPerfilHijo(token);
+                    setChildData(perfil);
+                    // Actualizar cache
+                    await AsyncStorage.setItem('child_data', JSON.stringify(perfil));
+                }
+            } catch (error) {
+                // Si falla el API, se queda con los datos del cache
+                console.log('Error al cargar perfil:', error.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        cargarPerfil();
+    }, []);
+
+    if (loading && !childData) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#7C3AED" />
+                <Text style={{ marginTop: 10, fontFamily: Fonts.figtreeRegular, color: '#6B7280' }}>Cargando perfil...</Text>
+            </View>
+        );
+    }
+
+    const childName = childData?.nombre || 'Hijo';
 
     return (
         <View style={styles.container}>
@@ -29,7 +73,7 @@ export default function PerfilHijo() {
                             />
                         </View>
                         <View style={styles.nameBadge}>
-                            <Text style={styles.nameText}>Ángel</Text>
+                            <Text style={styles.nameText}>{childName}</Text>
                         </View>
                     </View>
 
