@@ -1,4 +1,4 @@
-import { registerUser } from "../services/api";
+import { registerPadre } from "../services/api";
 import { Ionicons } from '@expo/vector-icons';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
@@ -29,7 +29,7 @@ export default function RegistroPapa() {
         setLoading(true);
         // Intenta registrar el usuario
         try {
-            const data = await registerUser(name, lastName, email, password);
+            const data = await registerPadre(name, lastName, email, password);
             router.replace('/principalpapa');
         } catch (error) {
             // Si hay un error, muestra un alert con el error

@@ -1,4 +1,5 @@
-import { loginUser } from '../services/api';
+import { loginPadre } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Alert, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -29,7 +30,14 @@ export default function LoginPapa() {
         setLoading(true);
         // Intenta iniciar sesión
         try {
-            const data = await loginUser(email, password);
+            const data = await loginPadre(email, password);
+
+            // Guarda el token y datos del padre en AsyncStorage
+            await AsyncStorage.setItem('parent_token', data.access_token);
+            if (data.padre) {
+                await AsyncStorage.setItem('parent_data', JSON.stringify(data.padre));
+            }
+
             router.replace('/principalpapa');
         } catch (error) {
             // Si hay un error, muestra un alert con el error

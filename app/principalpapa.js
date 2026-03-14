@@ -1,13 +1,54 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../components/BarraNavegacion";
+import { obtenerPerfilPapa } from '../services/api';
 import { Colors, Fonts, Shadows } from "../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// Colores para los avatares de los hijos
+const AVATAR_COLORS = ['#DDD6FE', '#FEF3C7', '#DCFCE7', '#FDE68A', '#BFDBFE', '#FBCFE8'];
+
 export default function PrincipalPapa() {
     const router = useRouter();
+    const [parentData, setParentData] = useState(null);
+    const [hijos, setHijos] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    // Obtener datos del padre al montar el componente
+    useEffect(() => {
+        const fetchParentData = async () => {
+            try {
+                const token = await AsyncStorage.getItem('parent_token');
+                if (!token) {
+                    router.replace('/loginpapa');
+                    return;
+                }
+
+                const perfil = await obtenerPerfilPapa(token);
+                setParentData(perfil);
+
+                if (perfil.hijos) {
+                    setHijos(perfil.hijos);
+                }
+            } catch (error) {
+                console.log('Error al obtener perfil:', error.message);
+                // Intentar usar datos cacheados
+                const cachedData = await AsyncStorage.getItem('parent_data');
+                if (cachedData) {
+                    const parsed = JSON.parse(cachedData);
+                    setParentData(parsed);
+                    if (parsed.hijos) setHijos(parsed.hijos);
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchParentData();
+    }, []);
 
     const handleAdminPerfilesPress = () => {
         router.push('/administrarperfiles');
@@ -21,6 +62,15 @@ export default function PrincipalPapa() {
             params: { name, avatar }
         });
     };
+
+
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -41,7 +91,7 @@ export default function PrincipalPapa() {
                     <View style={styles.welcomeRow}>
                         <View style={styles.welcomeTextColumn}>
                             <Text style={styles.welcomeText}>¡Hola,</Text>
-                            <Text style={styles.userNameText}>Gaby Pacheco!</Text>
+                            <Text style={styles.userNameText}>{parentData?.nombre} {parentData?.apellido}!</Text>
                         </View>
                         <View style={styles.parentAvatarWrapper}>
                             <Image
@@ -82,53 +132,28 @@ export default function PrincipalPapa() {
                     </View>
 
                     <View style={styles.profilesList}>
-                        {/* Profile Cons */}
-                        <TouchableOpacity
-                            style={styles.profileCard}
-                            onPress={() => handleBotonPerfilPress('Cons', require("../assets/images/capicons.png"))}
-                        >
-                            <View style={[styles.avatarCircle, { backgroundColor: '#DDD6FE' }]}>
-                                <Image
-                                    source={require("../assets/images/capicons.png")}
-                                    style={styles.profileAvatar}
-                                    resizeMode="contain"
-                                />
+                        {hijos.length > 0 ? (
+                            hijos.map((hijo, index) => (
+                                <TouchableOpacity
+                                    key={hijo.id || index}
+                                    style={styles.profileCard}
+                                    onPress={() => handleBotonPerfilPress(hijo.nombre, null)}
+                                >
+                                    <View style={[styles.avatarCircle, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}> 
+                                        <Text style={styles.avatarInitial}>
+                                            {hijo.nombre ? hijo.nombre.charAt(0).toUpperCase() : '?'}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.profileName}>{hijo.nombre}</Text>
+                                    <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+                                </TouchableOpacity>
+                            ))
+                        ) : (
+                            <View style={styles.emptyState}>
+                                <Ionicons name="people-outline" size={40} color={Colors.darkgraytext} />
+                                <Text style={styles.emptyStateText}>No hay hijos registrados</Text>
                             </View>
-                            <Text style={styles.profileName}>Cons</Text>
-                            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
-                        </TouchableOpacity>
-
-                        {/* Profile Angel */}
-                        <TouchableOpacity
-                            style={styles.profileCard}
-                            onPress={() => handleBotonPerfilPress('Angel', require("../assets/images/capiangel.png"))}
-                        >
-                            <View style={[styles.avatarCircle, { backgroundColor: '#FEF3C7' }]}>
-                                <Image
-                                    source={require("../assets/images/capiangel.png")}
-                                    style={styles.profileAvatar}
-                                    resizeMode="contain"
-                                />
-                            </View>
-                            <Text style={styles.profileName}>Angel</Text>
-                            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
-                        </TouchableOpacity>
-
-                        {/* Profile Fer */}
-                        <TouchableOpacity
-                            style={styles.profileCard}
-                            onPress={() => handleBotonPerfilPress('Fer', require("../assets/images/capifer.png"))}
-                        >
-                            <View style={[styles.avatarCircle, { backgroundColor: '#DCFCE7' }]}>
-                                <Image
-                                    source={require("../assets/images/capifer.png")}
-                                    style={styles.profileAvatar}
-                                    resizeMode="contain"
-                                />
-                            </View>
-                            <Text style={styles.profileName}>Fer</Text>
-                            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
-                        </TouchableOpacity>
+                        )}
                     </View>
                 </View>
 
@@ -315,9 +340,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginRight: 15,
     },
-    profileAvatar: {
-        width: 35,
-        height: 35,
+    avatarInitial: {
+        fontSize: 22,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        color: '#6B21A8',
     },
     profileName: {
         flex: 1,
@@ -325,5 +352,16 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.figtreebold,
         fontWeight: 'bold',
         color: Colors.black,
-    }
+    },
+    emptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 30,
+        gap: 10,
+    },
+    emptyStateText: {
+        fontSize: 16,
+        fontFamily: Fonts.figtreeRegular,
+        color: Colors.darkgraytext,
+    },
 });
