@@ -1,7 +1,8 @@
 import { Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Dimensions, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../styles/globalStyles";
 
@@ -25,8 +26,14 @@ export default function PerfilDePapa() {
         router.push('/terminosycondiciones');
     };
 
-    const handleLogoutPress = () => {
-        router.replace('/');
+    // limpia los tokens y datos del padre del cache y redirige a la pantalla inicial
+    const handleLogoutPress = async () => {
+        try {
+            await AsyncStorage.multiRemove(['parent_token', 'parent_data']);
+            router.replace('/');
+        } catch (error) {
+            Alert.alert('Error', 'No se pudo cerrar sesión');
+        }
     };
 
     const handleOpenModal = () => {
