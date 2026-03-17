@@ -1,6 +1,7 @@
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import BarraNavegacion from "../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../styles/globalStyles";
 
@@ -9,6 +10,14 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 export default function PerfilConfigHijo() {
     const router = useRouter();
 
+const handleLogoutPress = async () => {
+        try {
+            await AsyncStorage.multiRemove(['child_token', 'child_data']);
+            router.replace('/');
+        } catch (error) {
+            Alert.alert('Error', 'No se pudo cerrar sesión');
+        }
+    };
     return (
         <View style={styles.container}>
             {/* Header Section */}
@@ -74,6 +83,18 @@ export default function PerfilConfigHijo() {
                             <Ionicons name="help-circle" size={36} color="#5B21B6" />
                         </View>
                         <Text style={styles.menuText}>Ayuda</Text>
+                        <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+                    </TouchableOpacity>
+                    {/* Eliminar despues solo para pruebas */}
+                    {/* Cerrar sesión Option */}
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => handleLogoutPress()}
+                    >
+                        <View style={styles.iconContainer}>
+                            <Ionicons name="log-out" size={36} color="#5B21B6" />
+                        </View>
+                        <Text style={styles.menuText}>Cerrar sesión</Text>
                         <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
                     </TouchableOpacity>
                 </View>

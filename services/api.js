@@ -48,3 +48,17 @@ export async function obtenerPerfilPapa(token) {
     return data;
 }
 
+// OBTENER PERFIL HIJO
+export async function obtenerPerfilHijo(token) {
+    const response = await fetch(`${API_URL}/auth_hijos/me`, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.detail || "No autorizado");
+    }
+    return data;
+}
