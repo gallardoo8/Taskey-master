@@ -1,3 +1,4 @@
+// TODO: clasificar — padre o hijo
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
