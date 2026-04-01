@@ -16,7 +16,10 @@
   <img src="https://img.shields.io/badge/Arquitectura-MVVM-8B5CF6" alt="MVVM" />
   <img src="https://img.shields.io/badge/Plataformas-Android%20%7C%20iOS%20%7C%20Web-green" alt="Platforms" />
   <a href="https://github.com/RogueBaker01/TaskKey-Back1"><img src="https://img.shields.io/badge/Backend-FastAPI%20%7C%20Azure-009688?logo=fastapi&logoColor=white" alt="Backend" /></a>
+  <img src="https://img.shields.io/badge/Estado-🚧%20En%20Construcción-yellow" alt="WIP" />
 </p>
+
+> **Proyecto en construcción** — Esta aplicación se encuentra en desarrollo activo. Algunas funcionalidades pueden estar incompletas o sujetas a cambios.
 
 ---
 
