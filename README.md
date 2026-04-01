@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/images/icon.png" alt="Taskey Logo" width="120" />
+  <img src="./assets/images/capibara.png" alt="Taskey Logo" width="120" />
 </p>
 
 <h1 align="center">Taskey — Frontend</h1>
