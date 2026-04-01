@@ -12,6 +12,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Expo-54-000020?logo=expo" alt="Expo" />
   <img src="https://img.shields.io/badge/React_Native-0.81-61DAFB?logo=react" alt="React Native" />
+  <img src="https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?logo=javascript&logoColor=black" alt="JavaScript" />
   <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Arquitectura-MVVM-8B5CF6" alt="MVVM" />
   <img src="https://img.shields.io/badge/Plataformas-Android%20%7C%20iOS%20%7C%20Web-green" alt="Platforms" />
