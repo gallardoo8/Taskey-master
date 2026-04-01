@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -46,6 +46,7 @@ export default function LoginHijo() {
     };
 
     return (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.container}>
             {/* Botón de regreso */}
             <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
@@ -75,6 +76,7 @@ export default function LoginHijo() {
                 </View>
             </View>
         </View>
+        </TouchableWithoutFeedback>
     );
 }
 
