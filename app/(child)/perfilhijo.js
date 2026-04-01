@@ -1,10 +1,44 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { obtenerPerfilHijo } from '../../services/api';
 import BarraNavegacion from "../../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
+
+const TUTORIAL_SHOWN_KEY = 'tutorial_shown_hijo';
+
+const TUTORIAL_STEPS = [
+    {
+        icon: '🎯',
+        title: 'Misiones',
+        description: 'Aquí encontrarás las tareas que tu papá, mamá o tutor te asignó. ¡Complétalas y gana recompensas!',
+        color: '#F97316',
+        bg: '#FFF7ED',
+    },
+    {
+        icon: '🎁',
+        title: 'Recompensas',
+        description: 'Con tus keys puedes canjear recompensas. ¡Completa misiones para ganar más!',
+        color: '#DB2777',
+        bg: '#FDF2F4',
+    },
+    {
+        icon: '🏆',
+        title: 'Logros',
+        description: 'Desbloquea logros especiales al completar retos. ¡Colecciónalos todos!',
+        color: '#2563EB',
+        bg: '#EFF6FF',
+    },
+    {
+        icon: '🔥',
+        title: 'Racha',
+        description: 'Tu racha muestra cuántos días seguidos has completado tus misiones. ¡No la pierdas!',
+        color: '#65A30D',
+        bg: '#F7FEE7',
+    },
+];
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -12,6 +46,9 @@ export default function PerfilHijo() {
     const router = useRouter();
     const [childData, setChildData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [rachaModalVisible, setRachaModalVisible] = useState(false);
+    const [tutorialVisible, setTutorialVisible] = useState(false);
+    const [tutorialStep, setTutorialStep] = useState(0);
 
     useEffect(() => {
         const cargarPerfil = async () => {
@@ -38,8 +75,46 @@ export default function PerfilHijo() {
             }
         };
 
+        const verificarTutorial = async () => {
+            try {
+                const tutorialMostrado = await AsyncStorage.getItem(TUTORIAL_SHOWN_KEY);
+                if (!tutorialMostrado) {
+                    setTutorialVisible(true);
+                }
+            } catch (error) {
+                console.log('Error al verificar tutorial:', error.message);
+            }
+        };
+
         cargarPerfil();
+        verificarTutorial();
     }, []);
+
+    const cerrarTutorial = async () => {
+        try {
+            await AsyncStorage.setItem(TUTORIAL_SHOWN_KEY, 'true');
+        } catch (error) {
+            console.log('Error al guardar estado del tutorial:', error.message);
+        }
+        setTutorialVisible(false);
+        setTutorialStep(0);
+    };
+
+    const siguientePaso = () => {
+        if (tutorialStep < TUTORIAL_STEPS.length - 1) {
+            setTutorialStep(tutorialStep + 1);
+        } else {
+            cerrarTutorial();
+        }
+    };
+
+    const anteriorPaso = () => {
+        if (tutorialStep > 0) {
+            setTutorialStep(tutorialStep - 1);
+        }
+    };
+
+    const step = TUTORIAL_STEPS[tutorialStep];
 
     if (loading && !childData) {
         return (
@@ -121,7 +196,10 @@ export default function PerfilHijo() {
                     </TouchableOpacity>
 
                     {/* Racha Card */}
-                    <TouchableOpacity style={[styles.card, { backgroundColor: '#F7FEE7' }]}>
+                    <TouchableOpacity
+                        style={[styles.card, { backgroundColor: '#F7FEE7' }]}
+                        onPress={() => setRachaModalVisible(true)}
+                    >
                         <Text style={[styles.cardTitle, { color: '#65A30D' }]}>Racha</Text>
                         <View style={styles.rachaContainer}>
                             <Image
@@ -142,6 +220,81 @@ export default function PerfilHijo() {
             </ScrollView>
 
             <BarraNavegacion activeTab="inicio" userType="hijo" />
+
+            {/* Modal de Racha */}
+            <Modal
+                transparent={true}
+                visible={rachaModalVisible}
+                animationType="fade"
+                onRequestClose={() => setRachaModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.rachaModalEmoji}>🔥</Text>
+                        <Text style={styles.modalTitle}>¿Qué es la Racha?</Text>
+                        <Text style={styles.modalBody}>
+                            Tu racha muestra cuántos días seguidos has completado tus misiones.
+                            {'\n\n'}
+                            ¡Cuantos más días cumplas sin fallar, más larga será tu racha! Mantenerla activa te ayuda a ganar logros especiales.
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.modalCloseButton}
+                            onPress={() => setRachaModalVisible(false)}
+                        >
+                            <Text style={styles.modalCloseText}>¡Entendido!</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Modal de Tutorial */}
+            <Modal
+                transparent={true}
+                visible={tutorialVisible}
+                animationType="fade"
+                onRequestClose={cerrarTutorial}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.tutorialContent}>
+                        <Text style={styles.tutorialHeaderText}>¡Bienvenido a Taskey! 🎉</Text>
+                        <View style={[styles.tutorialStepBox, { backgroundColor: step.bg }]}>
+                            <Text style={styles.tutorialIcon}>{step.icon}</Text>
+                            <Text style={[styles.tutorialStepTitle, { color: step.color }]}>{step.title}</Text>
+                            <Text style={styles.tutorialStepDesc}>{step.description}</Text>
+                        </View>
+                        <View style={styles.tutorialDots}>
+                            {TUTORIAL_STEPS.map((_, i) => (
+                                <View
+                                    key={i}
+                                    style={[
+                                        styles.dot,
+                                        { backgroundColor: i === tutorialStep ? Colors.primary : '#D1D5DB' },
+                                    ]}
+                                />
+                            ))}
+                        </View>
+                        <View style={styles.tutorialButtons}>
+                            {tutorialStep > 0 && (
+                                <TouchableOpacity style={styles.tutorialBackBtn} onPress={anteriorPaso}>
+                                    <Ionicons name="chevron-back" size={20} color={Colors.primary} />
+                                    <Text style={styles.tutorialBackText}>Anterior</Text>
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                                style={[styles.tutorialNextBtn, tutorialStep === 0 && { flex: 1 }]}
+                                onPress={siguientePaso}
+                            >
+                                <Text style={styles.tutorialNextText}>
+                                    {tutorialStep < TUTORIAL_STEPS.length - 1 ? 'Siguiente' : '¡Empezar!'}
+                                </Text>
+                                {tutorialStep < TUTORIAL_STEPS.length - 1 && (
+                                    <Ionicons name="chevron-forward" size={20} color={Colors.white} />
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -332,5 +485,138 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontFamily: Fonts.figtreeRegular,
         color: Colors.black,
-    }
+    },
+    // Modal de Racha
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: Colors.white,
+        width: '85%',
+        borderRadius: 28,
+        padding: 28,
+        alignItems: 'center',
+        ...Shadows.button,
+    },
+    rachaModalEmoji: {
+        fontSize: 52,
+        marginBottom: 10,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontFamily: Fonts.figtreebold,
+        color: Colors.black,
+        marginBottom: 14,
+        textAlign: 'center',
+    },
+    modalBody: {
+        fontSize: 15,
+        fontFamily: Fonts.figtreeRegular,
+        color: '#4B5563',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 24,
+    },
+    modalCloseButton: {
+        backgroundColor: '#65A30D',
+        borderRadius: 20,
+        paddingVertical: 12,
+        paddingHorizontal: 40,
+        ...Shadows.button,
+        shadowOpacity: 0.1,
+    },
+    modalCloseText: {
+        color: Colors.white,
+        fontFamily: Fonts.figtreebold,
+        fontSize: 16,
+    },
+    // Modal de Tutorial
+    tutorialContent: {
+        backgroundColor: Colors.white,
+        width: '88%',
+        borderRadius: 28,
+        padding: 24,
+        alignItems: 'center',
+        ...Shadows.button,
+    },
+    tutorialHeaderText: {
+        fontSize: 20,
+        fontFamily: Fonts.figtreebold,
+        color: Colors.black,
+        marginBottom: 18,
+        textAlign: 'center',
+    },
+    tutorialStepBox: {
+        width: '100%',
+        borderRadius: 20,
+        padding: 22,
+        alignItems: 'center',
+        marginBottom: 18,
+    },
+    tutorialIcon: {
+        fontSize: 48,
+        marginBottom: 10,
+    },
+    tutorialStepTitle: {
+        fontSize: 22,
+        fontFamily: Fonts.figtreebold,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    tutorialStepDesc: {
+        fontSize: 14,
+        fontFamily: Fonts.figtreeRegular,
+        color: '#4B5563',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    tutorialDots: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 20,
+    },
+    dot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+    },
+    tutorialButtons: {
+        flexDirection: 'row',
+        width: '100%',
+        gap: 10,
+    },
+    tutorialBackBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: Colors.primary,
+        borderRadius: 18,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    tutorialBackText: {
+        color: Colors.primary,
+        fontFamily: Fonts.figtreebold,
+        fontSize: 15,
+        marginLeft: 4,
+    },
+    tutorialNextBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        backgroundColor: Colors.primary,
+        borderRadius: 18,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+    },
+    tutorialNextText: {
+        color: Colors.white,
+        fontFamily: Fonts.figtreebold,
+        fontSize: 15,
+    },
 });
