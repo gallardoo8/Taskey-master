@@ -1,60 +1,96 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from "react";
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
+import { crearHijo, editarHijo } from '../../services/api';
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const GENDER_OPTIONS = ['Masculino', 'Femenino', 'Otro'];
 
+// Calcula la edad a partir de la fecha de nacimiento
+function calcularEdad(fechaNacimiento) {
+    if (!fechaNacimiento) return null;
+    const hoy = new Date();
+    const nacimiento = new Date(fechaNacimiento);
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const mesActual = hoy.getMonth() - nacimiento.getMonth();
+    if (mesActual < 0 || (mesActual === 0 && hoy.getDate() < nacimiento.getDate())) {
+        edad--;
+    }
+    return edad;
+}
+
 export default function PerfilNuevo() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const isEditMode = params.mode === 'edit';
 
-    // States - Initialize with params if available
+    // States
     const [name, setName] = useState(params.name || '');
-    const [gender, setGender] = useState(params.gender || 'Masculino');
+    const [apellido, setApellido] = useState(params.apellido || '');
+    const [gender, setGender] = useState(params.genero || 'Masculino');
     const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
 
-    // Parse age string "12 años" -> 12
-    const initialAge = params.age ? parseInt(params.age) : 10;
-    const [age, setAge] = useState(initialAge);
-
-    // Date logic (simplified for demo, not parsing localized date string for now)
-    const [birthday, setBirthday] = useState(new Date());
+    // Date logic
+    const initialDate = params.fecha_nacimiento ? new Date(params.fecha_nacimiento) : new Date();
+    const [birthday, setBirthday] = useState(initialDate);
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [hasSelectedDate, setHasSelectedDate] = useState(isEditMode); // Show date boxes filled if edit mode
+    const [hasSelectedDate, setHasSelectedDate] = useState(isEditMode && !!params.fecha_nacimiento);
+
+    // Edad calculada
+    const edadCalculada = hasSelectedDate ? calcularEdad(birthday) : null;
 
     const handleBackPress = () => {
         router.back();
     };
 
-    const handleCreateProfile = () => {
-        if (isEditMode) {
-            const updatedProfile = {
-                id: params.id || Date.now().toString(),
-                name: name,
-                age: `${age} años`,
-                gender: gender,
-                avatar: params.avatar || require('../../assets/images/capihijo.png'),
-                status: params.status || 'verified'
+    const handleCreateProfile = async () => {
+        if (!name.trim()) {
+            Alert.alert('Error', 'El nombre es obligatorio');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const token = await AsyncStorage.getItem('parent_token');
+
+            const datos = {
+                nombre: name.trim(),
+                apellido: apellido.trim() || null,
+                genero: gender,
+                fecha_nacimiento: hasSelectedDate
+                    ? birthday.toISOString().split('T')[0]
+                    : null,
             };
-            router.replace({
-                pathname: '/administrarperfiles',
-                params: { updatedProfile: JSON.stringify(updatedProfile) }
-            });
-        } else {
-            router.dismiss();
-            router.replace({ pathname: '/administrarperfiles', params: { createdName: name || 'Berni' } });
+
+            if (isEditMode) {
+                await editarHijo(token, params.id, datos);
+                router.replace({
+                    pathname: '/administrarperfiles',
+                    params: { updatedProfile: 'true' }
+                });
+            } else {
+                const data = await crearHijo(token, datos);
+                router.replace({
+                    pathname: '/administrarperfiles',
+                    params: {
+                        createdName: name.trim(),
+                        createdCode: data.codigo_vinculacion || 'N/A'
+                    }
+                });
+            }
+        } catch (error) {
+            Alert.alert('Error', error.message);
+        } finally {
+            setSaving(false);
         }
     };
-
-    const incrementAge = () => setAge(prev => prev + 1);
-    const decrementAge = () => setAge(prev => Math.max(1, prev - 1));
 
     const onDateChange = (event, selectedDate) => {
         setShowDatePicker(false);
@@ -64,8 +100,8 @@ export default function PerfilNuevo() {
         }
     };
 
-    const formattedDay = hasSelectedDate ? (isEditMode && !showDatePicker ? '24' : birthday.getDate().toString().padStart(2, '0')) : '';
-    const formattedMonth = hasSelectedDate ? (isEditMode && !showDatePicker ? '10' : (birthday.getMonth() + 1).toString().padStart(2, '0')) : '';
+    const formattedDay = hasSelectedDate ? birthday.getDate().toString().padStart(2, '0') : '';
+    const formattedMonth = hasSelectedDate ? (birthday.getMonth() + 1).toString().padStart(2, '0') : '';
 
     return (
         <View style={styles.container}>
@@ -109,11 +145,20 @@ export default function PerfilNuevo() {
                         onChangeText={setName}
                     />
 
+                    {/* Apellido Input */}
+                    <TextInput
+                        style={styles.inputName}
+                        placeholder="Apellido (opcional)"
+                        placeholderTextColor="#9CA3AF"
+                        value={apellido}
+                        onChangeText={setApellido}
+                    />
+
                     {/* Gender */}
                     <Text style={styles.label}>Género</Text>
                     <View style={styles.genderContainer}>
                         <TouchableOpacity
-                            style={[styles.genderButton, isEditMode && { backgroundColor: '#7E22CE' }]} // Darker purple for edit mode? matching screenshot
+                            style={[styles.genderButton, isEditMode && { backgroundColor: '#7E22CE' }]}
                             onPress={() => setIsGenderDropdownOpen(!isGenderDropdownOpen)}
                         >
                             <Text style={styles.genderButtonText}>{gender}</Text>
@@ -136,18 +181,6 @@ export default function PerfilNuevo() {
                                 ))}
                             </View>
                         )}
-                    </View>
-
-                    {/* Age */}
-                    <Text style={styles.label}>Edad</Text>
-                    <View style={styles.ageContainer}>
-                        <TouchableOpacity style={[styles.controlButton, styles.minusButton]} onPress={decrementAge}>
-                            <Ionicons name="remove" size={20} color="black" />
-                        </TouchableOpacity>
-                        <Text style={styles.ageValue}>{age}</Text>
-                        <TouchableOpacity style={[styles.controlButton, isEditMode && { backgroundColor: '#7E22CE' }]} onPress={incrementAge}>
-                            <Ionicons name="add" size={20} color="white" />
-                        </TouchableOpacity>
                     </View>
 
                     {/* Birthday */}
@@ -176,13 +209,22 @@ export default function PerfilNuevo() {
                         />
                     )}
 
+                    {/* Edad calculada */}
+                    {edadCalculada !== null && (
+                        <View style={styles.ageDisplay}>
+                            <Text style={styles.ageLabel}>Edad: </Text>
+                            <Text style={styles.ageValue}>{edadCalculada} años</Text>
+                        </View>
+                    )}
+
                     {/* Create/Save Button */}
                     <TouchableOpacity
-                        style={[styles.createButton, isEditMode && { backgroundColor: '#7E22CE' }]}
+                        style={[styles.createButton, isEditMode && { backgroundColor: '#7E22CE' }, saving && { opacity: 0.5 }]}
                         onPress={handleCreateProfile}
+                        disabled={saving}
                     >
                         <Text style={styles.createButtonText}>
-                            {isEditMode ? 'Guardar cambios' : 'Crear perfil'}
+                            {saving ? 'Guardando...' : (isEditMode ? 'Guardar cambios' : 'Crear perfil')}
                         </Text>
                     </TouchableOpacity>
 
@@ -210,7 +252,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 15,
         paddingHorizontal: 20,
-        backgroundColor: '#F3F4F6', // Light gray background
+        backgroundColor: '#F3F4F6',
         borderBottomWidth: 1,
         borderBottomColor: '#E5E7EB',
     },
@@ -224,7 +266,6 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         marginLeft: 10,
     },
-    // Deco Circles (Same as Admin)
     circlePink: {
         position: 'absolute',
         top: -20,
@@ -261,7 +302,6 @@ const styles = StyleSheet.create({
         borderRadius: 50,
         backgroundColor: Colors.primaryDark,
     },
-    // Content
     contentContainer: {
         flex: 1,
     },
@@ -305,7 +345,7 @@ const styles = StyleSheet.create({
     },
     // Gender
     genderContainer: {
-        zIndex: 10, // For dropdown
+        zIndex: 10,
         marginBottom: 20,
         width: '60%',
         alignItems: 'center',
@@ -342,36 +382,11 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.figtreeRegular,
         color: Colors.black,
     },
-    // Age
-    ageContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20,
-        gap: 20,
-    },
-    ageValue: {
-        fontSize: 24,
-        fontFamily: Fonts.figtreebold,
-        fontWeight: 'bold',
-        minWidth: 40,
-        textAlign: 'center',
-    },
-    controlButton: {
-        backgroundColor: Colors.primary,
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    minusButton: {
-        backgroundColor: '#E5E7EB',
-    },
     // Date
     dateRow: {
         flexDirection: 'row',
         gap: 20,
-        marginBottom: 30,
+        marginBottom: 15,
     },
     dateBox: {
         backgroundColor: '#EEEEEE',
@@ -385,6 +400,33 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.figtreeRegular,
         color: '#6B7280',
         fontSize: 14,
+    },
+    dateLabelSmall: {
+        fontSize: 10,
+        color: '#6B7280',
+        fontFamily: Fonts.figtreeRegular,
+        marginTop: 2
+    },
+    // Age display
+    ageDisplay: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 25,
+        backgroundColor: '#F3F4F6',
+        paddingVertical: 8,
+        paddingHorizontal: 20,
+        borderRadius: 15,
+    },
+    ageLabel: {
+        fontFamily: Fonts.figtreeRegular,
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    ageValue: {
+        fontFamily: Fonts.figtreebold,
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.black,
     },
     // Create Button
     createButton: {
@@ -401,10 +443,4 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 18,
     },
-    dateLabelSmall: {
-        fontSize: 10,
-        color: '#6B7280',
-        fontFamily: Fonts.figtreeRegular,
-        marginTop: 2
-    }
 });

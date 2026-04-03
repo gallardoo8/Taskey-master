@@ -1,52 +1,76 @@
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from "react";
-import { Dimensions, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Dimensions, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
+import { listarHijos, eliminarHijo, generarCodigoVinculacion } from '../../services/api';
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Mock Data for Profiles
-const INITIAL_PROFILES = [
-    { id: '1', name: 'Cons', age: '12 años', status: 'verified', avatar: require('../../assets/images/capicons.png'), gender: 'Femenino' },
-    { id: '2', name: 'Angel', age: '8 años', status: 'verified', avatar: require('../../assets/images/capiangel.png'), gender: 'Masculino' },
-    { id: '3', name: 'Fer', age: '9 años', status: 'verified', avatar: require('../../assets/images/capifer.png'), gender: 'Masculino' },
-];
+// Colores para los avatares cuando no hay imagen
+const AVATAR_COLORS = ['#DDD6FE', '#FEF3C7', '#DCFCE7', '#FDE68A', '#BFDBFE', '#FBCFE8'];
 
 export default function AdministrarPerfiles() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const [profiles, setProfiles] = useState(INITIAL_PROFILES);
+    const [profiles, setProfiles] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    // Success Modal State
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [createdProfileName, setCreatedProfileName] = useState('');
+    const [createdCode, setCreatedCode] = useState('');
 
     // Delete Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [profileToDelete, setProfileToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     // Link Modal State
     const [showLinkModal, setShowLinkModal] = useState(false);
+    const [linkCode, setLinkCode] = useState('');
+    const [generatingCode, setGeneratingCode] = useState(false);
+
+    // Cargar hijos desde la API
+    const fetchHijos = useCallback(async () => {
+        try {
+            const token = await AsyncStorage.getItem('parent_token');
+            if (!token) {
+                router.replace('/loginpapa');
+                return;
+            }
+            const hijos = await listarHijos(token);
+            setProfiles(hijos);
+        } catch (error) {
+            console.log('Error al cargar hijos:', error.message);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        if (params.createdName) {
-            setCreatedProfileName(params.createdName);
-            setShowSuccessModal(true);
+        fetchHijos();
+    }, [fetchHijos]);
 
-            // Add the new profile to the list for demo purposes
-            setProfiles(prev => [
-                ...prev,
-                {
-                    id: Date.now().toString(),
-                    name: params.createdName,
-                    age: '11 años',
-                    status: 'pending',
-                    avatar: require('../../assets/images/capihijo.png'),
-                    gender: 'Masculino' // Default
-                }
-            ]);
+    // Cuando regresa de crear un perfil nuevo, refrescar la lista
+    useEffect(() => {
+        if (params.createdName && params.createdCode) {
+            setCreatedProfileName(params.createdName);
+            setCreatedCode(params.createdCode);
+            setShowSuccessModal(true);
+            // Refrescar lista
+            fetchHijos();
         }
-    }, [params.createdName]);
+    }, [params.createdName, params.createdCode]);
+
+    // Cuando regresa de editar un perfil, refrescar la lista
+    useEffect(() => {
+        if (params.updatedProfile) {
+            fetchHijos();
+        }
+    }, [params.updatedProfile]);
 
     const handleBackPress = () => {
         router.back();
@@ -62,76 +86,89 @@ export default function AdministrarPerfiles() {
             params: {
                 mode: 'edit',
                 id: profile.id,
-                name: profile.name,
-                age: profile.age,
-                gender: profile.gender || 'Masculino',
-                avatar: profile.avatar,
-                status: profile.status
+                name: profile.nombre,
+                apellido: profile.apellido || '',
+                genero: profile.genero || '',
+                fecha_nacimiento: profile.fecha_nacimiento || '',
             }
         });
     };
 
-    useEffect(() => {
-        if (params.updatedProfile) {
-            try {
-                const updated = JSON.parse(params.updatedProfile);
-                setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
-            } catch (e) {
-                console.error("Error parsing updated profile", e);
-            }
-        }
-    }, [params.updatedProfile]);
-
+    // Eliminar hijo via API
     const handleDeletePress = (profile) => {
         setProfileToDelete(profile);
         setShowDeleteModal(true);
     };
 
-    const handleDeleteConfirm = () => {
-        if (profileToDelete) {
+    const handleDeleteConfirm = async () => {
+        if (!profileToDelete) return;
+        setDeleting(true);
+        try {
+            const token = await AsyncStorage.getItem('parent_token');
+            await eliminarHijo(token, profileToDelete.id);
             setProfiles(prev => prev.filter(p => p.id !== profileToDelete.id));
             setShowDeleteModal(false);
             setProfileToDelete(null);
+        } catch (error) {
+            console.log('Error al eliminar:', error.message);
+        } finally {
+            setDeleting(false);
         }
     };
 
     const handleCloseModal = () => {
         setShowSuccessModal(false);
-        // Clear params to prevent reopening on simple re-renders? 
-        // In Expo Router params persist, but local state handles the visibility.
     };
 
-    const handlePendingIconPress = () => {
+    // Generar/mostrar codigo de vinculacion
+    const handlePendingIconPress = async (profile) => {
+        setGeneratingCode(true);
         setShowLinkModal(true);
+        try {
+            const token = await AsyncStorage.getItem('parent_token');
+            const data = await generarCodigoVinculacion(token, profile.id);
+            setLinkCode(data.codigo);
+        } catch (error) {
+            setLinkCode('Error al generar');
+            console.log('Error:', error.message);
+        } finally {
+            setGeneratingCode(false);
+        }
     };
 
-    const renderProfileItem = ({ item }) => (
+    const renderProfileItem = ({ item, index }) => (
         <TouchableOpacity
             style={styles.card}
             onPress={() => router.push({
                 pathname: '/perfildehijo',
-                params: { name: item.name, avatar: item.avatar }
+                params: { name: item.nombre, id: item.id }
             })}
         >
             {/* Avatar */}
             <View style={styles.avatarContainer}>
-                <Image source={item.avatar} style={styles.avatar} resizeMode="contain" />
+                <View style={[styles.avatarCircle, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
+                    <Text style={styles.avatarInitial}>
+                        {item.nombre ? item.nombre.charAt(0).toUpperCase() : '?'}
+                    </Text>
+                </View>
             </View>
 
             {/* Info */}
             <View style={styles.infoContainer}>
                 <View style={styles.nameRow}>
-                    <Text style={styles.nameText}>{item.name}</Text>
-                    {item.status === 'verified' && (
+                    <Text style={styles.nameText}>{item.nombre}</Text>
+                    {item.estado_vinculacion === 'vinculado' && (
                         <Ionicons name="checkmark-circle" size={18} color="#84CC16" style={styles.statusIcon} />
                     )}
-                    {item.status === 'pending' && (
-                        <TouchableOpacity onPress={handlePendingIconPress}>
+                    {item.estado_vinculacion === 'pendiente' && (
+                        <TouchableOpacity onPress={() => handlePendingIconPress(item)}>
                             <FontAwesome5 name="hourglass-half" size={16} color="#3B82F6" style={styles.statusIcon} />
                         </TouchableOpacity>
                     )}
                 </View>
-                <Text style={styles.ageText}>{item.age}</Text>
+                {item.fecha_nacimiento && (
+                    <Text style={styles.ageText}>{item.fecha_nacimiento}</Text>
+                )}
             </View>
 
             {/* Actions */}
@@ -145,6 +182,14 @@ export default function AdministrarPerfiles() {
             </View>
         </TouchableOpacity>
     );
+
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -177,6 +222,13 @@ export default function AdministrarPerfiles() {
                 style={styles.list}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="people-outline" size={50} color={Colors.darkgraytext} />
+                        <Text style={styles.emptyText}>No hay perfiles registrados</Text>
+                        <Text style={styles.emptySubtext}>Agrega un perfil para comenzar</Text>
+                    </View>
+                }
             />
 
             <BarraNavegacion activeTab="inicio" />
@@ -197,7 +249,7 @@ export default function AdministrarPerfiles() {
                         </Text>
 
                         <View style={styles.codeContainer}>
-                            <Text style={styles.codeText}>5mJ9pKns71</Text>
+                            <Text style={styles.codeText}>{createdCode}</Text>
                         </View>
 
                         <TouchableOpacity style={styles.acceptButton} onPress={handleCloseModal}>
@@ -229,7 +281,7 @@ export default function AdministrarPerfiles() {
                         </View>
 
                         <Text style={styles.deleteTitle}>
-                            ¿Estás seguro de eliminar a <Text style={{ fontWeight: 'bold' }}>{profileToDelete?.name}</Text>?
+                            ¿Estás seguro de eliminar a <Text style={{ fontWeight: 'bold' }}>{profileToDelete?.nombre}</Text>?
                         </Text>
 
                         <Text style={styles.deleteMessage}>
@@ -245,10 +297,11 @@ export default function AdministrarPerfiles() {
                             </TouchableOpacity>
 
                             <TouchableOpacity
-                                style={[styles.deleteButton, styles.confirmDeleteButton]}
+                                style={[styles.deleteButton, styles.confirmDeleteButton, deleting && { opacity: 0.5 }]}
                                 onPress={handleDeleteConfirm}
+                                disabled={deleting}
                             >
-                                <Text style={styles.confirmDeleteText}>Eliminar</Text>
+                                <Text style={styles.confirmDeleteText}>{deleting ? 'Eliminando...' : 'Eliminar'}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -276,9 +329,13 @@ export default function AdministrarPerfiles() {
                         <Text style={styles.linkCodeTitle}>
                             Código de vinculación:
                         </Text>
-                        <Text style={styles.linkCodeValue}>
-                            5mJ9pKns71
-                        </Text>
+                        {generatingCode ? (
+                            <ActivityIndicator size="small" color={Colors.primary} style={{ marginBottom: 25 }} />
+                        ) : (
+                            <Text style={styles.linkCodeValue}>
+                                {linkCode}
+                            </Text>
+                        )}
 
                         <TouchableOpacity
                             style={styles.linkAcceptButton}
@@ -307,7 +364,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 15,
         paddingHorizontal: 20,
-        backgroundColor: '#F3F4F6', // Light bar background
+        backgroundColor: '#F3F4F6',
         borderBottomWidth: 1,
         borderBottomColor: '#E5E7EB',
     },
@@ -399,11 +456,18 @@ const styles = StyleSheet.create({
     avatarContainer: {
         marginRight: 15,
     },
-    avatar: {
+    avatarCircle: {
         width: 50,
         height: 50,
         borderRadius: 25,
-        backgroundColor: '#E5E7EB',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarInitial: {
+        fontSize: 22,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        color: '#6B21A8',
     },
     infoContainer: {
         flex: 1,
@@ -433,6 +497,23 @@ const styles = StyleSheet.create({
     },
     actionButton: {
         padding: 5,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+        gap: 10,
+    },
+    emptyText: {
+        fontSize: 18,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        color: Colors.darkgraytext,
+    },
+    emptySubtext: {
+        fontSize: 14,
+        fontFamily: Fonts.figtreeRegular,
+        color: '#9CA3AF',
     },
     modalOverlay: {
         flex: 1,

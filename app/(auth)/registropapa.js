@@ -1,4 +1,5 @@
 import { registerPadre } from "../../services/api";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
@@ -30,6 +31,11 @@ export default function RegistroPapa() {
         // Intenta registrar el usuario
         try {
             const data = await registerPadre(name, lastName, email, password);
+            // Guardar token y datos del padre en AsyncStorage
+            await AsyncStorage.setItem('parent_token', data.access_token);
+            if (data.padre) {
+                await AsyncStorage.setItem('parent_data', JSON.stringify(data.padre));
+            }
             router.replace('/principalpapa');
         } catch (error) {
             // Si hay un error, muestra un alert con el error

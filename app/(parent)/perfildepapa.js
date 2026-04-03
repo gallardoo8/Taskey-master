@@ -1,22 +1,45 @@
 import { Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Dimensions, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
+import { obtenerPerfilPapa, actualizarPerfilPadre } from '../../services/api';
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function PerfilDePapa() {
     const router = useRouter();
-    const [username, setUsername] = useState("Gaby Pacheco");
+    const [parentData, setParentData] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [tempUsername, setTempUsername] = useState("");
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [saving, setSaving] = useState(false);
 
-    const handleBackPress = () => {
-        router.back();
-    };
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const token = await AsyncStorage.getItem('parent_token');
+                if (!token) {
+                    router.replace('/loginpapa');
+                    return;
+                }
+                const perfil = await obtenerPerfilPapa(token);
+                setParentData(perfil);
+            } catch (error) {
+                console.log('Error al obtener perfil:', error.message);
+                // Intentar usar datos cacheados
+                const cachedData = await AsyncStorage.getItem('parent_data');
+                if (cachedData) {
+                    setParentData(JSON.parse(cachedData));
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     const handlePreguntasPress = () => {
         router.push('/preguntasfrecuentes');
@@ -26,7 +49,7 @@ export default function PerfilDePapa() {
         router.push('/terminosycondiciones');
     };
 
-    // limpia los tokens y datos del padre del cache y redirige a la pantalla inicial
+    // Limpia los tokens y datos del padre del cache y redirige a la pantalla inicial
     const handleLogoutPress = async () => {
         try {
             await AsyncStorage.multiRemove(['parent_token', 'parent_data']);
@@ -37,20 +60,46 @@ export default function PerfilDePapa() {
     };
 
     const handleOpenModal = () => {
-        setTempUsername(username);
+        setTempUsername(`${parentData?.nombre || ''} ${parentData?.apellido || ''}`.trim());
         setIsModalVisible(true);
     };
 
-    const handleSaveUsername = () => {
-        if (tempUsername.trim() !== "") {
-            setUsername(tempUsername);
+    // Guardar nombre editado en la API
+    const handleSaveUsername = async () => {
+        if (tempUsername.trim() === "") return;
+
+        setSaving(true);
+        try {
+            const token = await AsyncStorage.getItem('parent_token');
+            const partes = tempUsername.trim().split(' ');
+            const nombre = partes[0];
+            const apellido = partes.slice(1).join(' ') || parentData?.apellido || '';
+
+            const updated = await actualizarPerfilPadre(token, { nombre, apellido });
+            setParentData(prev => ({ ...prev, ...updated }));
+            // Actualizar cache
+            await AsyncStorage.setItem('parent_data', JSON.stringify({ ...parentData, ...updated }));
             setIsModalVisible(false);
+        } catch (error) {
+            Alert.alert('Error', error.message);
+        } finally {
+            setSaving(false);
         }
     };
 
     const handleCancelEdit = () => {
         setIsModalVisible(false);
     };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+        );
+    }
+
+    const displayName = parentData ? `${parentData.nombre} ${parentData.apellido}` : 'Usuario';
 
     return (
         <View style={styles.container}>
@@ -70,7 +119,7 @@ export default function PerfilDePapa() {
                             />
                         </View>
                         <View style={styles.nameContainer}>
-                            <Text style={styles.headerName}>{username}</Text>
+                            <Text style={styles.headerName}>{displayName}</Text>
                             <Text style={styles.headerSubtext}>Configuración de cuenta</Text>
                         </View>
                     </View>
@@ -93,7 +142,7 @@ export default function PerfilDePapa() {
                                     <Feather name="edit-2" size={16} color={Colors.primary} />
                                 </TouchableOpacity>
                             </View>
-                            <Text style={styles.menuValue}>{username}</Text>
+                            <Text style={styles.menuValue}>{displayName}</Text>
                         </View>
                     </View>
 
@@ -106,7 +155,7 @@ export default function PerfilDePapa() {
                         </View>
                         <View style={styles.menuTextContainer}>
                             <Text style={styles.menuLabel}>Correo electrónico</Text>
-                            <Text style={styles.menuValue}>gabspachecho@gmail.com</Text>
+                            <Text style={styles.menuValue}>{parentData?.email || 'Sin correo'}</Text>
                         </View>
                     </View>
 
@@ -178,11 +227,11 @@ export default function PerfilDePapa() {
                                 <Text style={styles.buttonText}>Cancelar</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.saveButton, tempUsername.trim() === "" && { opacity: 0.5 }]}
+                                style={[styles.saveButton, (tempUsername.trim() === "" || saving) && { opacity: 0.5 }]}
                                 onPress={handleSaveUsername}
-                                disabled={tempUsername.trim() === ""}
+                                disabled={tempUsername.trim() === "" || saving}
                             >
-                                <Text style={styles.buttonText}>Guardar</Text>
+                                <Text style={styles.buttonText}>{saving ? "Guardando..." : "Guardar"}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -426,4 +475,3 @@ const styles = StyleSheet.create({
         color: Colors.white,
     }
 });
-
