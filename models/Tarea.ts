@@ -1,4 +1,8 @@
 export interface Tarea {
   id: string;
-  // TODO: Definir los campos correspondientes del dominio
+  title: string;
+  description: string;
+  deadline: string;
+  status: string;
+  statusColor?: string;
 }

@@ -1,4 +1,7 @@
 export interface Recompensa {
   id: string;
-  // TODO: Definir los campos correspondientes del dominio
+  title: string;
+  description: string;
+  points: number;
+  status: string;
 }

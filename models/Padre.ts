@@ -1,4 +1,6 @@
 export interface Padre {
   id: string;
-  // TODO: Definir los campos correspondientes del dominio
+  nombre: string;
+  apellido: string;
+  email: string;
 }

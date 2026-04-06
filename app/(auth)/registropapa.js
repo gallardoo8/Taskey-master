@@ -1,5 +1,4 @@
-import { registerPadre } from "../../services/api";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthViewModel } from '../../viewmodels/useAuthViewModel';
 import { Ionicons } from '@expo/vector-icons';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
@@ -17,7 +16,8 @@ export default function RegistroPapa() {
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [loading, setLoading] = useState(false);
+    
+    const { registerPadre, loading } = useAuthViewModel();
 
     // Funcion para el registro
     const handlePrincipalPapaPress = async () => {
@@ -26,23 +26,13 @@ export default function RegistroPapa() {
             Alert.alert("Error", "Todos los campos son obligatorios");
             return;
         }
-        // Pone el estado de loading en true para mostrar el indicador de carga en lo que espera respuesta del servidor
-        setLoading(true);
-        // Intenta registrar el usuario
-        try {
-            const data = await registerPadre(name, lastName, email, password);
-            // Guardar token y datos del padre en AsyncStorage
-            await AsyncStorage.setItem('parent_token', data.access_token);
-            if (data.padre) {
-                await AsyncStorage.setItem('parent_data', JSON.stringify(data.padre));
-            }
+        
+        const result = await registerPadre(name, lastName, email, password);
+        
+        if (result.success) {
             router.replace('/principalpapa');
-        } catch (error) {
-            // Si hay un error, muestra un alert con el error
-            Alert.alert("Error", error.message);
-        } finally {
-            // Pone el estado de loading en false para ocultar el indicador de carga
-            setLoading(false);
+        } else {
+            Alert.alert("Error", result.error);
         }
     };
 

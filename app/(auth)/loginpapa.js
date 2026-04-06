@@ -1,5 +1,4 @@
-import { loginPadre } from '../../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthViewModel } from '../../viewmodels/useAuthViewModel';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Alert, Dimensions, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
@@ -12,9 +11,11 @@ export default function LoginPapa() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
+    
+    // ViewModel Logic
+    const { loginPadre, loading } = useAuthViewModel();
 
-    // Redirige a la pantalla de registro
+    //Redirege a la pantalla de registro
     const handleRegistrarsePress = () => {
         router.push('/registropapa');
     };
@@ -26,25 +27,13 @@ export default function LoginPapa() {
             Alert.alert("Error", "Todos los campos son obligatorios");
             return;
         }
-        // Pone el estado de loading en true para mostrar el indicador de carga en lo que espera al servidor
-        setLoading(true);
-        // Intenta iniciar sesión
-        try {
-            const data = await loginPadre(email, password);
-
-            // Guarda el token y datos del padre en AsyncStorage
-            await AsyncStorage.setItem('parent_token', data.access_token);
-            if (data.padre) {
-                await AsyncStorage.setItem('parent_data', JSON.stringify(data.padre));
-            }
-
+        
+        const result = await loginPadre(email, password);
+        
+        if (result.success) {
             router.replace('/principalpapa');
-        } catch (error) {
-            // Si hay un error, muestra un alert con el error
-            Alert.alert("Error", error.message);
-        } finally {
-            // Pone el estado de loading en false para ocultar el indicador de carga
-            setLoading(false);
+        } else {
+            Alert.alert("Error", result.error);
         }
     };
 

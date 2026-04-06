@@ -1,10 +1,9 @@
+import { useHijosViewModel } from '../../viewmodels/useHijosViewModel';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from "react";
 import { Alert, Dimensions, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
-import { crearHijo, editarHijo } from '../../services/api';
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -57,6 +56,8 @@ export default function PerfilNuevo() {
     const [gender, setGender] = useState(params.genero || 'Masculino');
     const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    
+    const { crearHijo, editarHijo } = useHijosViewModel();
 
     // Logica de las fechas
     const initDate = params.fecha_nacimiento ? new Date(params.fecha_nacimiento) : null;
@@ -85,41 +86,42 @@ export default function PerfilNuevo() {
         }
 
         setSaving(true);
-        try {
-            const token = await AsyncStorage.getItem('parent_token');
+        const fechaStr = hasSelectedDate
+            ? `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`
+            : null;
 
-            const fechaStr = hasSelectedDate
-                ? `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`
-                : null;
+        const datos = {
+            nombre: name.trim(),
+            apellido: apellido.trim() || null,
+            genero: gender,
+            fecha_nacimiento: fechaStr,
+        };
 
-            const datos = {
-                nombre: name.trim(),
-                apellido: apellido.trim() || null,
-                genero: gender,
-                fecha_nacimiento: fechaStr,
-            };
-
-            if (isEditMode) {
-                await editarHijo(token, params.id, datos);
+        if (isEditMode) {
+            const result = await editarHijo(params.id, datos);
+            if (result.success) {
                 router.replace({
                     pathname: '/administrarperfiles',
                     params: { updatedProfile: 'true' }
                 });
             } else {
-                const data = await crearHijo(token, datos);
+                Alert.alert('Error', result.error);
+            }
+        } else {
+            const result = await crearHijo(datos);
+            if (result.success) {
                 router.replace({
                     pathname: '/administrarperfiles',
                     params: {
                         createdName: name.trim(),
-                        createdCode: data.codigo_vinculacion || 'N/A'
+                        createdCode: result.data.codigo_vinculacion || 'N/A'
                     }
                 });
+            } else {
+                Alert.alert('Error', result.error);
             }
-        } catch (error) {
-            Alert.alert('Error', error.message);
-        } finally {
-            setSaving(false);
         }
+        setSaving(false);
     };
 
     const formattedDay = selectedDay ? String(selectedDay).padStart(2, '0') : '';

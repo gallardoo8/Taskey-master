@@ -1,12 +1,17 @@
+import { useHijosViewModel } from '../../viewmodels/useHijosViewModel';
 import { Entypo, Feather, FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from "react";
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// Colores para los avatares
+const AVATAR_COLORS = ['#DDD6FE', '#FEF3C7', '#DCFCE7', '#FDE68A', '#BFDBFE', '#FBCFE8'];
+
+// Tareas de ejemplo
 const TASKS_THIS_WEEK = [
     {
         id: '1',
@@ -45,31 +50,78 @@ const TASKS_PREVIOUS = [
     }
 ];
 
-const children = [
-    { id: '1', name: 'Cons', avatar: require('../../assets/images/capicons.png') },
-    { id: '2', name: 'Angel', avatar: require('../../assets/images/capiangel.png') },
-    { id: '3', name: 'Fer', avatar: require('../../assets/images/capifer.png') },
+// Apps restringidas de ejemplo por hijo
+const DEFAULT_RESTRICTED_APPS = [
+    { id: '1', name: 'YouTube', icon: 'youtube', type: 'FontAwesome5', color: '#FF0000' },
+    { id: '2', name: 'TikTok', icon: 'note', type: 'Entypo', color: '#000000' },
+    { id: '3', name: 'Netflix', icon: 'netflix', type: 'MaterialCommunityIcons', color: '#E50914' },
+    { id: '4', name: 'Roblox', icon: 'square-rounded', type: 'MaterialCommunityIcons', color: '#3B82F6' },
 ];
+
+const renderAppIcon = (app) => {
+    if (app.type === 'FontAwesome5') return <FontAwesome5 name={app.icon} size={16} color="white" />;
+    if (app.type === 'MaterialCommunityIcons') return <MaterialCommunityIcons name={app.icon} size={16} color="white" />;
+    if (app.type === 'Entypo') return <Entypo name={app.icon} size={16} color="white" />;
+    return null;
+};
 
 export default function PerfilDeHijo() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const [activeTab, setActiveTab] = useState('Semana'); // 'Semana' or 'Anteriores'
+    const [activeTab, setActiveTab] = useState('Semana');
+    const [selectedChildId, setSelectedChildId] = useState(params.id || null);
+    
+    // ViewModel logic
+    const { hijos: children, loading, fetchHijos } = useHijosViewModel();
 
-    const childName = params.name || 'Cons';
-    // Look up avatar from the children array to avoid issues with param serialization
-    const currentChild = children.find(c => c.name === childName) || children[0];
-    const childAvatar = currentChild.avatar;
+    useEffect(() => {
+        fetchHijos().then(() => {
+            // Seleccionar hijo por params o el primero
+            if (!selectedChildId) {
+                if (params.id) {
+                    setSelectedChildId(params.id);
+                } else if (params.name && children.length > 0) {
+                    const found = children.find(h => h.nombre === params.name);
+                    setSelectedChildId(found ? found.id : children[0].id);
+                } else if (children.length > 0) {
+                    setSelectedChildId(children[0].id);
+                }
+            }
+        }).catch((err) => {
+             // Si el error es de token invalido, redirigimos
+             if (err?.message?.includes('No token')) {
+                 router.replace('/loginpapa');
+             }
+        });
+    }, [fetchHijos, params.id, params.name, children.length, selectedChildId]);
+
+    // Hijo actualmente seleccionado
+    const currentChild = children.find(c => c.id === selectedChildId) || children[0];
+    const currentIndex = children.findIndex(c => c.id === selectedChildId);
 
     const handleBackPress = () => router.back();
     const handleAssignTask = () => router.push({
         pathname: '/asignartarea',
-        params: { name: childName, avatar: childAvatar }
+        params: { name: currentChild?.nombre, id: currentChild?.id }
     });
 
-    const handleSwitchChild = (name, avatar) => {
-        router.setParams({ name, avatar });
+    const handleSwitchChild = (child) => {
+        setSelectedChildId(child.id);
     };
+
+    // Obtener texto de vinculación
+    const getLinkedText = (child) => {
+        if (!child) return null;
+        if (child.estado_vinculacion === 'vinculado') {
+            return { text: '1 dispositivo vinculado', color: '#AAD62D', icon: 'checkmark-circle' };
+        }
+        if (child.estado_vinculacion === 'pendiente') {
+            return { text: 'Pendiente de vincular', color: '#F59E0B', icon: 'time' };
+        }
+        return { text: 'Sin vincular', color: '#9CA3AF', icon: 'alert-circle-outline' };
+    };
+
+    const linkedInfo = getLinkedText(currentChild);
 
     const renderTask = (task) => (
         <View key={task.id} style={styles.taskCard}>
@@ -95,6 +147,31 @@ export default function PerfilDeHijo() {
         </View>
     );
 
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+        );
+    }
+
+    if (children.length === 0) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Ionicons name="people-outline" size={60} color={Colors.darkgraytext} />
+                <Text style={{ fontFamily: Fonts.figtreebold, fontSize: 18, color: Colors.darkgraytext, marginTop: 15 }}>
+                    No hay hijos registrados
+                </Text>
+                <TouchableOpacity
+                    style={{ marginTop: 20, backgroundColor: Colors.primary, paddingVertical: 12, paddingHorizontal: 30, borderRadius: 20 }}
+                    onPress={() => router.push('/perfilnuevo')}
+                >
+                    <Text style={{ color: Colors.white, fontFamily: Fonts.figtreebold, fontWeight: 'bold' }}>Agregar hijo</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             {/* Header Section with Decorative Circles and Switcher */}
@@ -104,62 +181,73 @@ export default function PerfilDeHijo() {
                 <View style={[styles.circle, styles.circleCyan]} />
 
                 <View style={styles.headerContent}>
-                    {/* Horizontal Profile Switcher (The requested 'carrusel') */}
+                    {/* Flecha de retroceso */}
+                    <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+                        <Ionicons name="chevron-back" size={28} color="white" />
+                    </TouchableOpacity>
+
+                    {/* Carrusel de hijos reales */}
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.switcherContent}
                         style={styles.switcher}
-                        snapToInterval={96} // width (76) + gap (20)
+                        snapToInterval={96}
                         decelerationRate="fast"
                     >
-                        {children.map((child) => (
+                        {children.map((child, index) => (
                             <TouchableOpacity
                                 key={child.id}
                                 style={[
                                     styles.switcherItem,
-                                    child.name === childName && styles.switcherItemActive
+                                    child.id === selectedChildId && styles.switcherItemActive
                                 ]}
-                                onPress={() => handleSwitchChild(child.name, child.avatar)}
+                                onPress={() => handleSwitchChild(child)}
                             >
                                 <View style={[
                                     styles.switcherAvatarWrapper,
-                                    child.name === childName && styles.switcherAvatarActive
+                                    child.id === selectedChildId && styles.switcherAvatarActive
                                 ]}>
-                                    <Image source={child.avatar} style={styles.switcherAvatar} resizeMode="contain" />
+                                    <View style={[styles.switcherInitialCircle, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
+                                        <Text style={styles.switcherInitial}>
+                                            {child.nombre ? child.nombre.charAt(0).toUpperCase() : '?'}
+                                        </Text>
+                                    </View>
                                 </View>
                                 <Text style={[
                                     styles.switcherName,
-                                    child.name === childName && styles.switcherNameActive
-                                ]}>{child.name}</Text>
+                                    child.id === selectedChildId && styles.switcherNameActive
+                                ]}>{child.nombre}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
 
-                    <View style={styles.linkedContainer}>
-                        <Ionicons name="checkmark-circle" size={18} color="#AAD62D" />
-                        <Text style={styles.linkedText}>1 dispositivo vinculado</Text>
-                    </View>
+                    {/* Estado de vinculación real */}
+                    {linkedInfo && (
+                        <View style={styles.linkedContainer}>
+                            <Ionicons name={linkedInfo.icon} size={18} color={linkedInfo.color} />
+                            <Text style={[styles.linkedText, { color: linkedInfo.color }]}>{linkedInfo.text}</Text>
+                        </View>
+                    )}
                 </View>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Restricted Apps */}
                 <Text style={styles.sectionTitle}>Aplicaciones restringidas</Text>
-                <TouchableOpacity style={styles.appsCard} onPress={() => router.push('/appsrestringidas')}>
+                <TouchableOpacity
+                    style={styles.appsCard}
+                    onPress={() => router.push({
+                        pathname: '/appsrestringidas',
+                        params: { childId: currentChild?.id, childName: currentChild?.nombre }
+                    })}
+                >
                     <View style={styles.appsContainer}>
-                        <View style={[styles.appIcon, { backgroundColor: 'black' }]}>
-                            <Entypo name="note" size={20} color="white" />
-                        </View>
-                        <View style={[styles.appIcon, { backgroundColor: '#EF4444' }]}>
-                            <FontAwesome5 name="play" size={14} color="white" />
-                        </View>
-                        <View style={[styles.appIcon, { backgroundColor: 'black' }]}>
-                            <Text style={styles.netflixLetter}>N</Text>
-                        </View>
-                        <View style={[styles.appIcon, { backgroundColor: '#3B82F6' }]}>
-                            <MaterialCommunityIcons name="square-rounded" size={18} color="white" />
-                        </View>
+                        {DEFAULT_RESTRICTED_APPS.map(app => (
+                            <View key={app.id} style={[styles.appIcon, { backgroundColor: app.color }]}>
+                                {renderAppIcon(app)}
+                            </View>
+                        ))}
                     </View>
                     <Feather name="chevron-right" size={24} color="black" />
                 </TouchableOpacity>
@@ -178,7 +266,7 @@ export default function PerfilDeHijo() {
                         style={styles.editSleepButton}
                         onPress={() => router.push({
                             pathname: '/horariodesueno',
-                            params: { name: childName, avatar: childAvatar }
+                            params: { name: currentChild?.nombre, id: currentChild?.id }
                         })}
                     >
                         <Text style={styles.editSleepButtonText}>Editar</Text>
@@ -228,7 +316,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.gray,
     },
     header: {
-        height: SCREEN_HEIGHT * 0.32,
+        height: SCREEN_HEIGHT * 0.34,
         backgroundColor: Colors.primary,
         borderBottomLeftRadius: 40,
         borderBottomRightRadius: 40,
@@ -269,6 +357,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 10,
     },
+    backButton: {
+        position: 'absolute',
+        top: -30,
+        left: 15,
+        zIndex: 20,
+        padding: 5,
+    },
     switcher: {
         width: '100%',
         marginBottom: 15,
@@ -300,9 +395,18 @@ const styles = StyleSheet.create({
         borderColor: '#AAD62D',
         transform: [{ scale: 1.1 }],
     },
-    switcherAvatar: {
+    switcherInitialCircle: {
         width: 55,
         height: 55,
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    switcherInitial: {
+        fontSize: 24,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        color: '#6B21A8',
     },
     switcherName: {
         color: Colors.white,
@@ -321,7 +425,6 @@ const styles = StyleSheet.create({
         gap: 5,
     },
     linkedText: {
-        color: '#AAD62D',
         fontFamily: Fonts.figtreebold,
         fontWeight: 'bold',
         fontSize: 14,
@@ -418,7 +521,7 @@ const styles = StyleSheet.create({
     },
     taskCard: {
         backgroundColor: Colors.white,
-        borderRadius: 0, // Cards look flat but separate? screenshot shows them within a list container
+        borderRadius: 0,
         paddingVertical: 15,
         paddingHorizontal: 15,
         flexDirection: 'row',

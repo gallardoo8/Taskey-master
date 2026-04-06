@@ -1,45 +1,32 @@
+import { usePadreViewModel } from '../../viewmodels/usePadreViewModel';
+import { useAuthViewModel } from '../../viewmodels/useAuthViewModel';
 import { Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
-import { obtenerPerfilPapa, actualizarPerfilPadre } from '../../services/api';
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function PerfilDePapa() {
     const router = useRouter();
-    const [parentData, setParentData] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [tempUsername, setTempUsername] = useState("");
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [saving, setSaving] = useState(false);
 
+    // ViewModel logic
+    const { parentData, loading, fetchPerfil, actualizarPerfil } = usePadreViewModel();
+    const { logoutPadre } = useAuthViewModel();
+
     useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const token = await AsyncStorage.getItem('parent_token');
-                if (!token) {
-                    router.replace('/loginpapa');
-                    return;
-                }
-                const perfil = await obtenerPerfilPapa(token);
-                setParentData(perfil);
-            } catch (error) {
-                console.log('Error al obtener perfil:', error.message);
-                // Intentar usar datos cacheados
-                const cachedData = await AsyncStorage.getItem('parent_data');
-                if (cachedData) {
-                    setParentData(JSON.parse(cachedData));
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchProfile();
-    }, []);
+        fetchPerfil().catch((err) => {
+             // Si el error es de token invalido, redirigimos
+             if (err?.message?.includes('No token')) {
+                 router.replace('/loginpapa');
+             }
+        });
+    }, [fetchPerfil]);
 
     const handlePreguntasPress = () => {
         router.push('/preguntasfrecuentes');
@@ -52,7 +39,7 @@ export default function PerfilDePapa() {
     // Limpia los tokens y datos del padre del cache y redirige a la pantalla inicial
     const handleLogoutPress = async () => {
         try {
-            await AsyncStorage.multiRemove(['parent_token', 'parent_data']);
+            await logoutPadre();
             router.replace('/');
         } catch (error) {
             Alert.alert('Error', 'No se pudo cerrar sesión');
@@ -69,22 +56,19 @@ export default function PerfilDePapa() {
         if (tempUsername.trim() === "") return;
 
         setSaving(true);
-        try {
-            const token = await AsyncStorage.getItem('parent_token');
-            const partes = tempUsername.trim().split(' ');
-            const nombre = partes[0];
-            const apellido = partes.slice(1).join(' ') || parentData?.apellido || '';
+        const partes = tempUsername.trim().split(' ');
+        const nombre = partes[0];
+        const apellido = partes.slice(1).join(' ') || parentData?.apellido || '';
 
-            const updated = await actualizarPerfilPadre(token, { nombre, apellido });
-            setParentData(prev => ({ ...prev, ...updated }));
-            // Actualizar cache
-            await AsyncStorage.setItem('parent_data', JSON.stringify({ ...parentData, ...updated }));
+        const result = await actualizarPerfil({ nombre, apellido });
+        
+        if (result.success) {
             setIsModalVisible(false);
-        } catch (error) {
-            Alert.alert('Error', error.message);
-        } finally {
-            setSaving(false);
+        } else {
+            Alert.alert('Error', result.error);
         }
+        
+        setSaving(false);
     };
 
     const handleCancelEdit = () => {

@@ -1,10 +1,9 @@
+import { useHijosViewModel } from '../../viewmodels/useHijosViewModel';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Dimensions, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
-import { listarHijos, eliminarHijo, generarCodigoVinculacion } from '../../services/api';
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -15,57 +14,42 @@ const AVATAR_COLORS = ['#DDD6FE', '#FEF3C7', '#DCFCE7', '#FDE68A', '#BFDBFE', '#
 export default function AdministrarPerfiles() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const [profiles, setProfiles] = useState([]);
-    const [loading, setLoading] = useState(true);
+    
+    // ViewModel logic
+    const { hijos: profiles, loading, fetchHijos, eliminarHijo, generarCodigoVinculacion } = useHijosViewModel();
 
-    // Success Modal State
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [createdProfileName, setCreatedProfileName] = useState('');
     const [createdCode, setCreatedCode] = useState('');
 
-    // Delete Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [profileToDelete, setProfileToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
-    // Link Modal State
     const [showLinkModal, setShowLinkModal] = useState(false);
     const [linkCode, setLinkCode] = useState('');
     const [generatingCode, setGeneratingCode] = useState(false);
 
-    // Cargar hijos desde la API
-    const fetchHijos = useCallback(async () => {
-        try {
-            const token = await AsyncStorage.getItem('parent_token');
-            if (!token) {
-                router.replace('/loginpapa');
-                return;
-            }
-            const hijos = await listarHijos(token);
-            setProfiles(hijos);
-        } catch (error) {
-            console.log('Error al cargar hijos:', error.message);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
     useEffect(() => {
-        fetchHijos();
+        fetchHijos().catch(err => {
+             if (err?.message?.includes('No token')) {
+                 router.replace('/loginpapa');
+             }
+        });
     }, [fetchHijos]);
 
-    // Cuando regresa de crear un perfil nuevo, refrescar la lista
+    // Cuando regresa de crear un perfil nuevo, actualiza la lista
     useEffect(() => {
         if (params.createdName && params.createdCode) {
             setCreatedProfileName(params.createdName);
             setCreatedCode(params.createdCode);
             setShowSuccessModal(true);
-            // Refrescar lista
+            // Actualiza la lista
             fetchHijos();
         }
     }, [params.createdName, params.createdCode]);
 
-    // Cuando regresa de editar un perfil, refrescar la lista
+    // Actualiza la lista
     useEffect(() => {
         if (params.updatedProfile) {
             fetchHijos();
@@ -94,7 +78,6 @@ export default function AdministrarPerfiles() {
         });
     };
 
-    // Eliminar hijo via API
     const handleDeletePress = (profile) => {
         setProfileToDelete(profile);
         setShowDeleteModal(true);
@@ -103,37 +86,31 @@ export default function AdministrarPerfiles() {
     const handleDeleteConfirm = async () => {
         if (!profileToDelete) return;
         setDeleting(true);
-        try {
-            const token = await AsyncStorage.getItem('parent_token');
-            await eliminarHijo(token, profileToDelete.id);
-            setProfiles(prev => prev.filter(p => p.id !== profileToDelete.id));
-            setShowDeleteModal(false);
-            setProfileToDelete(null);
-        } catch (error) {
-            console.log('Error al eliminar:', error.message);
-        } finally {
-            setDeleting(false);
-        }
+        
+        await eliminarHijo(profileToDelete.id);
+        
+        setShowDeleteModal(false);
+        setProfileToDelete(null);
+        setDeleting(false);
     };
 
     const handleCloseModal = () => {
         setShowSuccessModal(false);
     };
 
-    // Generar/mostrar codigo de vinculacion
+    // Genera y muestra codigo de vinculacion
     const handlePendingIconPress = async (profile) => {
         setGeneratingCode(true);
         setShowLinkModal(true);
-        try {
-            const token = await AsyncStorage.getItem('parent_token');
-            const data = await generarCodigoVinculacion(token, profile.id);
-            setLinkCode(data.codigo);
-        } catch (error) {
+        
+        const result = await generarCodigoVinculacion(profile.id);
+        if (result.success) {
+            setLinkCode(result.data.codigo);
+        } else {
             setLinkCode('Error al generar');
-            console.log('Error:', error.message);
-        } finally {
-            setGeneratingCode(false);
         }
+        
+        setGeneratingCode(false);
     };
 
     const renderProfileItem = ({ item, index }) => (

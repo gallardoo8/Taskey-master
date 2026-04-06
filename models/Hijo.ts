@@ -1,4 +1,9 @@
 export interface Hijo {
   id: string;
-  // TODO: Definir los campos correspondientes del dominio
+  nombre: string;
+  apellido: string;
+  genero: string;
+  fecha_nacimiento?: string;
+  estado_vinculacion?: string;
+  pin_acceso?: string;
 }

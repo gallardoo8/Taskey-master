@@ -1,10 +1,9 @@
+import { usePadreViewModel } from '../../viewmodels/usePadreViewModel';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
-import { obtenerPerfilPapa } from '../../services/api';
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -14,41 +13,22 @@ const AVATAR_COLORS = ['#DDD6FE', '#FEF3C7', '#DCFCE7', '#FDE68A', '#BFDBFE', '#
 
 export default function PrincipalPapa() {
     const router = useRouter();
-    const [parentData, setParentData] = useState(null);
-    const [hijos, setHijos] = useState([]);
-    const [loading, setLoading] = useState(true);
+    
+    // ViewModel logic
+    const { parentData, loading, fetchPerfil } = usePadreViewModel();
 
     // Obtener datos del padre al montar el componente
     useEffect(() => {
-        const fetchParentData = async () => {
-            try {
-                const token = await AsyncStorage.getItem('parent_token');
-                if (!token) {
-                    router.replace('/loginpapa');
-                    return;
-                }
+        fetchPerfil().catch((err) => {
+             // Si el error es de token invalido, redirigimos
+             if (err?.message?.includes('No token')) {
+                 router.replace('/loginpapa');
+             }
+        });
+    }, [fetchPerfil]); 
 
-                const perfil = await obtenerPerfilPapa(token);
-                setParentData(perfil);
-
-                if (perfil.hijos) {
-                    setHijos(perfil.hijos);
-                }
-            } catch (error) {
-                console.log('Error al obtener perfil:', error.message);
-                // Intentar usar datos cacheados
-                const cachedData = await AsyncStorage.getItem('parent_data');
-                if (cachedData) {
-                    const parsed = JSON.parse(cachedData);
-                    setParentData(parsed);
-                    if (parsed.hijos) setHijos(parsed.hijos);
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchParentData();
-    }, []);
+    // Extraer hijos del parentData o array vacio si no hay
+    const hijos = parentData?.hijos || [];
 
     const handleAdminPerfilesPress = () => {
         router.push('/administrarperfiles');
@@ -56,10 +36,10 @@ export default function PrincipalPapa() {
     const handleAdminTareasPress = () => {
         router.push('/admintareas');
     };
-    const handleBotonPerfilPress = (name, avatar) => {
+    const handleBotonPerfilPress = (hijo) => {
         router.push({
             pathname: '/perfildehijo',
-            params: { name, avatar }
+            params: { name: hijo.nombre, id: hijo.id }
         });
     };
 
@@ -137,7 +117,7 @@ export default function PrincipalPapa() {
                                 <TouchableOpacity
                                     key={hijo.id || index}
                                     style={styles.profileCard}
-                                    onPress={() => handleBotonPerfilPress(hijo.nombre, null)}
+                                    onPress={() => handleBotonPerfilPress(hijo)}
                                 >
                                     <View style={[styles.avatarCircle, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}> 
                                         <Text style={styles.avatarInitial}>
