@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from "react";
-import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
 import { crearHijo, editarHijo } from '../../services/api';
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
@@ -11,6 +10,29 @@ import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const GENDER_OPTIONS = ['Masculino', 'Femenino', 'Otro'];
+
+const MONTHS = [
+    { value: 1, label: 'Enero' },
+    { value: 2, label: 'Febrero' },
+    { value: 3, label: 'Marzo' },
+    { value: 4, label: 'Abril' },
+    { value: 5, label: 'Mayo' },
+    { value: 6, label: 'Junio' },
+    { value: 7, label: 'Julio' },
+    { value: 8, label: 'Agosto' },
+    { value: 9, label: 'Septiembre' },
+    { value: 10, label: 'Octubre' },
+    { value: 11, label: 'Noviembre' },
+    { value: 12, label: 'Diciembre' },
+];
+
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: 30 }, (_, i) => currentYear - i);
+
+function getDaysInMonth(month, year) {
+    if (!month || !year) return Array.from({ length: 31 }, (_, i) => i + 1);
+    return Array.from({ length: new Date(year, month, 0).getDate() }, (_, i) => i + 1);
+}
 
 // Calcula la edad a partir de la fecha de nacimiento
 function calcularEdad(fechaNacimiento) {
@@ -30,21 +52,27 @@ export default function PerfilNuevo() {
     const params = useLocalSearchParams();
     const isEditMode = params.mode === 'edit';
 
-    // States
     const [name, setName] = useState(params.name || '');
     const [apellido, setApellido] = useState(params.apellido || '');
     const [gender, setGender] = useState(params.genero || 'Masculino');
     const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    // Date logic
-    const initialDate = params.fecha_nacimiento ? new Date(params.fecha_nacimiento) : new Date();
-    const [birthday, setBirthday] = useState(initialDate);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [hasSelectedDate, setHasSelectedDate] = useState(isEditMode && !!params.fecha_nacimiento);
+    // Logica de las fechas
+    const initDate = params.fecha_nacimiento ? new Date(params.fecha_nacimiento) : null;
+    const [selectedDay, setSelectedDay] = useState(initDate ? initDate.getDate() : null);
+    const [selectedMonth, setSelectedMonth] = useState(initDate ? initDate.getMonth() + 1 : null);
+    const [selectedYear, setSelectedYear] = useState(initDate ? initDate.getFullYear() : null);
 
-    // Edad calculada
+    const [showDayPicker, setShowDayPicker] = useState(false);
+    const [showMonthPicker, setShowMonthPicker] = useState(false);
+    const [showYearPicker, setShowYearPicker] = useState(false);
+
+    const hasSelectedDate = selectedDay !== null && selectedMonth !== null && selectedYear !== null;
+    const birthday = hasSelectedDate ? new Date(selectedYear, selectedMonth - 1, selectedDay) : null;
     const edadCalculada = hasSelectedDate ? calcularEdad(birthday) : null;
+
+    const availableDays = getDaysInMonth(selectedMonth, selectedYear);
 
     const handleBackPress = () => {
         router.back();
@@ -60,13 +88,15 @@ export default function PerfilNuevo() {
         try {
             const token = await AsyncStorage.getItem('parent_token');
 
+            const fechaStr = hasSelectedDate
+                ? `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`
+                : null;
+
             const datos = {
                 nombre: name.trim(),
                 apellido: apellido.trim() || null,
                 genero: gender,
-                fecha_nacimiento: hasSelectedDate
-                    ? birthday.toISOString().split('T')[0]
-                    : null,
+                fecha_nacimiento: fechaStr,
             };
 
             if (isEditMode) {
@@ -92,16 +122,9 @@ export default function PerfilNuevo() {
         }
     };
 
-    const onDateChange = (event, selectedDate) => {
-        setShowDatePicker(false);
-        if (selectedDate) {
-            setBirthday(selectedDate);
-            setHasSelectedDate(true);
-        }
-    };
-
-    const formattedDay = hasSelectedDate ? birthday.getDate().toString().padStart(2, '0') : '';
-    const formattedMonth = hasSelectedDate ? (birthday.getMonth() + 1).toString().padStart(2, '0') : '';
+    const formattedDay = selectedDay ? String(selectedDay).padStart(2, '0') : '';
+    const formattedMonth = selectedMonth ? String(selectedMonth).padStart(2, '0') : '';
+    const formattedYear = selectedYear ? String(selectedYear) : '';
 
     return (
         <View style={styles.container}>
@@ -188,26 +211,20 @@ export default function PerfilNuevo() {
                         Cumpleaños <Text style={{ fontSize: 16 }}>🎂</Text>
                     </Text>
 
-                    <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateRow}>
-                        <View style={styles.dateBox}>
+                    <View style={styles.dateRow}>
+                        <TouchableOpacity onPress={() => setShowDayPicker(true)} style={styles.dateBox}>
                             <Text style={styles.dateText}>{formattedDay || 'Día'}</Text>
-                            {hasSelectedDate && <Text style={styles.dateLabelSmall}>Día</Text>}
-                        </View>
-                        <View style={styles.dateBox}>
+                            {selectedDay && <Text style={styles.dateLabelSmall}>Día</Text>}
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setShowMonthPicker(true)} style={styles.dateBox}>
                             <Text style={styles.dateText}>{formattedMonth || 'Mes'}</Text>
-                            {hasSelectedDate && <Text style={styles.dateLabelSmall}>Mes</Text>}
-                        </View>
-                    </TouchableOpacity>
-
-                    {showDatePicker && (
-                        <DateTimePicker
-                            value={birthday}
-                            mode="date"
-                            display="default"
-                            onChange={onDateChange}
-                            maximumDate={new Date()}
-                        />
-                    )}
+                            {selectedMonth && <Text style={styles.dateLabelSmall}>Mes</Text>}
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setShowYearPicker(true)} style={styles.dateBoxYear}>
+                            <Text style={styles.dateText}>{formattedYear || 'Año'}</Text>
+                            {selectedYear && <Text style={styles.dateLabelSmall}>Año</Text>}
+                        </TouchableOpacity>
+                    </View>
 
                     {/* Edad calculada */}
                     {edadCalculada !== null && (
@@ -229,10 +246,86 @@ export default function PerfilNuevo() {
                     </TouchableOpacity>
 
                 </View>
+
                 <View style={{ height: 100 }} />
             </ScrollView>
 
             <BarraNavegacion activeTab="inicio" />
+
+            {/* Modal Día */}
+            <Modal visible={showDayPicker} transparent animationType="fade">
+                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowDayPicker(false)}>
+                    <View style={styles.pickerModal}>
+                        <Text style={styles.pickerTitle}>Seleccionar día</Text>
+                        <FlatList
+                            data={availableDays}
+                            keyExtractor={(item) => item.toString()}
+                            style={styles.pickerList}
+                            showsVerticalScrollIndicator={false}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[styles.pickerItem, selectedDay === item && styles.pickerItemActive]}
+                                    onPress={() => { setSelectedDay(item); setShowDayPicker(false); }}
+                                >
+                                    <Text style={[styles.pickerItemText, selectedDay === item && styles.pickerItemTextActive]}>
+                                        {String(item).padStart(2, '0')}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Modal Mes */}
+            <Modal visible={showMonthPicker} transparent animationType="fade">
+                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowMonthPicker(false)}>
+                    <View style={styles.pickerModal}>
+                        <Text style={styles.pickerTitle}>Seleccionar mes</Text>
+                        <FlatList
+                            data={MONTHS}
+                            keyExtractor={(item) => item.value.toString()}
+                            style={styles.pickerList}
+                            showsVerticalScrollIndicator={false}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[styles.pickerItem, selectedMonth === item.value && styles.pickerItemActive]}
+                                    onPress={() => { setSelectedMonth(item.value); setShowMonthPicker(false); }}
+                                >
+                                    <Text style={[styles.pickerItemText, selectedMonth === item.value && styles.pickerItemTextActive]}>
+                                        {item.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Modal Año */}
+            <Modal visible={showYearPicker} transparent animationType="fade">
+                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowYearPicker(false)}>
+                    <View style={styles.pickerModal}>
+                        <Text style={styles.pickerTitle}>Seleccionar año</Text>
+                        <FlatList
+                            data={YEARS}
+                            keyExtractor={(item) => item.toString()}
+                            style={styles.pickerList}
+                            showsVerticalScrollIndicator={false}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[styles.pickerItem, selectedYear === item && styles.pickerItemActive]}
+                                    onPress={() => { setSelectedYear(item); setShowYearPicker(false); }}
+                                >
+                                    <Text style={[styles.pickerItemText, selectedYear === item && styles.pickerItemTextActive]}>
+                                        {item}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
@@ -385,27 +478,35 @@ const styles = StyleSheet.create({
     // Date
     dateRow: {
         flexDirection: 'row',
-        gap: 20,
+        gap: 15,
         marginBottom: 15,
     },
     dateBox: {
         backgroundColor: '#EEEEEE',
-        width: 60,
-        height: 50,
-        borderRadius: 10,
+        width: 65,
+        height: 55,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    dateBoxYear: {
+        backgroundColor: '#EEEEEE',
+        width: 80,
+        height: 55,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
     },
     dateText: {
         fontFamily: Fonts.figtreeRegular,
         color: '#6B7280',
-        fontSize: 14,
+        fontSize: 15,
     },
     dateLabelSmall: {
         fontSize: 10,
-        color: '#6B7280',
+        color: '#9CA3AF',
         fontFamily: Fonts.figtreeRegular,
-        marginTop: 2
+        marginTop: 2,
     },
     // Age display
     ageDisplay: {
@@ -427,6 +528,54 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         color: Colors.black,
+    },
+    // Picker Modals
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    pickerModal: {
+        backgroundColor: Colors.white,
+        borderRadius: 20,
+        width: '70%',
+        maxHeight: SCREEN_HEIGHT * 0.5,
+        paddingVertical: 20,
+        paddingHorizontal: 10,
+        ...Shadows.button,
+    },
+    pickerTitle: {
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        fontSize: 18,
+        color: Colors.primary,
+        textAlign: 'center',
+        marginBottom: 15,
+    },
+    pickerList: {
+        maxHeight: SCREEN_HEIGHT * 0.35,
+    },
+    pickerItem: {
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        marginVertical: 2,
+        marginHorizontal: 5,
+    },
+    pickerItemActive: {
+        backgroundColor: Colors.primary,
+    },
+    pickerItemText: {
+        fontFamily: Fonts.figtreeRegular,
+        fontSize: 16,
+        color: Colors.black,
+        textAlign: 'center',
+    },
+    pickerItemTextActive: {
+        color: Colors.white,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
     },
     // Create Button
     createButton: {

@@ -203,6 +203,9 @@ export default function AdministrarPerfiles() {
 
             {/* Header Content */}
             <View style={styles.headerContent}>
+                <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+                    <Ionicons name="chevron-back" size={28} color="black" />
+                </TouchableOpacity>
                 <Text style={styles.headerTitle}>Perfiles</Text>
             </View>
 

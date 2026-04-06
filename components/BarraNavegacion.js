@@ -9,14 +9,17 @@ export default function BarraNavegacion({ activeTab = 'inicio', userType = 'papa
     const router = useRouter();
 
     const handleInicioPress = () => {
+        if (activeTab === 'inicio') return;
         const route = userType === 'papa' ? '/principalpapa' : '/perfilhijo';
         router.replace(route);
     };
     const handleNotificacionesPress = () => {
+        if (activeTab === 'notificaciones') return;
         const route = userType === 'papa' ? '/notificacionespapa' : '/notificacioneshijo';
         router.replace(route);
     };
     const handlePerfilPress = () => {
+        if (activeTab === 'perfil') return;
         const route = userType === 'papa' ? '/perfildepapa' : '/perfilconfighijo';
         router.replace(route);
     };

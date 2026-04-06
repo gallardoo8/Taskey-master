@@ -127,7 +127,14 @@ export async function editarHijo(token, hijoId, datos) {
         },
         body: JSON.stringify(datos),
     });
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        console.error('[editarHijo] Respuesta no-JSON del servidor:', text);
+        throw new Error("Error del servidor al editar hijo");
+    }
     if (!response.ok) {
         throw new Error(data.detail || "Error al editar hijo");
     }
