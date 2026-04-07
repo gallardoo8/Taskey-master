@@ -1,6 +1,7 @@
 import { AntDesign, Entypo, FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from "react";
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useState, useEffect, useCallback } from "react";
+import { usePoliciesViewModel } from '../../viewmodels/usePoliciesViewModel';
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
@@ -8,30 +9,76 @@ import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const INITIAL_APPS = [
-    { id: '1', name: 'YouTube', category: 'Entretenimiento', restricted: true, icon: 'youtube', type: 'FontAwesome5', color: '#FF0000' },
-    { id: '2', name: 'Netflix', category: 'Entretenimiento', restricted: true, icon: 'netflix', type: 'MaterialCommunityIcons', color: '#E50914' },
-    { id: '3', name: 'TikTok', category: 'Entretenimiento', restricted: true, icon: 'note', type: 'Entypo', color: '#000000' },
-    { id: '4', name: 'Disney+', category: 'Entretenimiento', restricted: false, icon: 'play-circle', type: 'MaterialCommunityIcons', color: '#006E99' },
-    { id: '5', name: 'HBO Max', category: 'Entretenimiento', restricted: false, icon: 'play-box', type: 'MaterialCommunityIcons', color: '#5821E4' },
+    { id: '1', name: 'YouTube', category: 'Entretenimiento', icon: 'youtube', type: 'FontAwesome5', color: '#FF0000' },
+    { id: '2', name: 'Netflix', category: 'Entretenimiento', icon: 'netflix', type: 'MaterialCommunityIcons', color: '#E50914' },
+    { id: '3', name: 'TikTok', category: 'Entretenimiento', icon: 'note', type: 'Entypo', color: '#000000' },
+    { id: '4', name: 'Disney+', category: 'Entretenimiento', icon: 'play-circle', type: 'MaterialCommunityIcons', color: '#006E99' },
+    { id: '5', name: 'HBO Max', category: 'Entretenimiento', icon: 'play-box', type: 'MaterialCommunityIcons', color: '#5821E4' },
 
-    { id: '6', name: 'Instagram', category: 'Redes sociales', restricted: true, icon: 'instagram', type: 'FontAwesome5', color: '#E1306C' },
-    { id: '7', name: 'Facebook', category: 'Redes sociales', restricted: false, icon: 'facebook', type: 'FontAwesome5', color: '#4267B2' },
+    { id: '6', name: 'Instagram', category: 'Redes sociales', icon: 'instagram', type: 'FontAwesome5', color: '#E1306C' },
+    { id: '7', name: 'Facebook', category: 'Redes sociales', icon: 'facebook', type: 'FontAwesome5', color: '#4267B2' },
 
-    { id: '8', name: 'Roblox', category: 'Juegos', restricted: true, icon: 'square-rounded', type: 'MaterialCommunityIcons', color: '#3B82F6' },
-    { id: '9', name: 'Subway Surfers', category: 'Juegos', restricted: true, icon: 'gamepad-variant', type: 'MaterialCommunityIcons', color: '#F59E0B' },
-    { id: '10', name: 'Geometry Dash', category: 'Juegos', restricted: true, icon: 'cube-outline', type: 'MaterialCommunityIcons', color: '#0369A1' },
+    { id: '8', name: 'Roblox', category: 'Juegos', icon: 'square-rounded', type: 'MaterialCommunityIcons', color: '#3B82F6' },
+    { id: '9', name: 'Subway Surfers', category: 'Juegos', icon: 'gamepad-variant', type: 'MaterialCommunityIcons', color: '#F59E0B' },
+    { id: '10', name: 'Geometry Dash', category: 'Juegos', icon: 'cube-outline', type: 'MaterialCommunityIcons', color: '#0369A1' },
 ];
 
 export default function AppsRestringidas() {
     const router = useRouter();
-    const [apps, setApps] = useState(INITIAL_APPS);
+    const params = useLocalSearchParams();
+    const childId = params.childId;
+    
+    const { policy, fetchPolicy, updatePolicy } = usePoliciesViewModel();
+    const [apps, setApps] = useState(INITIAL_APPS.map(a => ({...a, restricted: false})));
+
+    useFocusEffect(
+        useCallback(() => {
+            if (childId) {
+                fetchPolicy(childId);
+            }
+        }, [childId])
+    );
+
+    useEffect(() => {
+        if (policy?.restricted_apps) {
+            const restrictedIds = Array.isArray(policy.restricted_apps) ? policy.restricted_apps : [];
+            setApps(INITIAL_APPS.map(app => ({
+                ...app,
+                restricted: restrictedIds.includes(app.id)
+            })));
+        }
+    }, [policy]);
 
     const handleBackPress = () => router.back();
 
-    const toggleRestriction = (id) => {
+    const toggleRestriction = async (id) => {
+        const appToToggle = apps.find(a => a.id === id);
+        if(!appToToggle) return;
+        
+        const newRestrictedState = !appToToggle.restricted;
+        
         setApps(prev => prev.map(app =>
-            app.id === id ? { ...app, restricted: !app.restricted } : app
+            app.id === id ? { ...app, restricted: newRestrictedState } : app
         ));
+        
+        let currentRestricted = apps.filter(a => a.restricted).map(a => a.id);
+        if (newRestrictedState) {
+             if(!currentRestricted.includes(id)) currentRestricted.push(id);
+        } else {
+             currentRestricted = currentRestricted.filter(aId => aId !== id);
+        }
+
+        try {
+             await updatePolicy(childId, {
+                  restricted_apps: currentRestricted
+             });
+        } catch (e) {
+             console.log("Fallo al actualizar app rest", e);
+             // Rollback
+             setApps(prev => prev.map(app =>
+                 app.id === id ? { ...app, restricted: !newRestrictedState } : app
+             ));
+        }
     };
 
     const renderAppItem = (app) => (

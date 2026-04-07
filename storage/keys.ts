@@ -2,6 +2,8 @@ export const STORAGE_KEYS = {
   TOKEN: '@token',
   RECOMPENSAS: '@recompensas',
   HIJOS: '@hijos',
+  TAREAS: '@tareas',
+  POLICIES: '@policies',
   PARENT_TOKEN: 'parent_token',
   PARENT_DATA: 'parent_data',
   CHILD_TOKEN: 'child_token',

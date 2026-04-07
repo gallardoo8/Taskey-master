@@ -1,7 +1,9 @@
 import { useHijosViewModel } from '../../viewmodels/useHijosViewModel';
+import { useTareasViewModel } from '../../viewmodels/useTareasViewModel';
+import { usePoliciesViewModel } from '../../viewmodels/usePoliciesViewModel';
 import { Entypo, Feather, FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from "react";
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useCallback, useState, useEffect } from "react";
 import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
@@ -10,45 +12,6 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Colores para los avatares
 const AVATAR_COLORS = ['#DDD6FE', '#FEF3C7', '#DCFCE7', '#FDE68A', '#BFDBFE', '#FBCFE8'];
-
-// Tareas de ejemplo
-const TASKS_THIS_WEEK = [
-    {
-        id: '1',
-        title: 'Tender la cama',
-        description: 'Tender la cama correctamente y acomodar los peluches',
-        deadline: 'Hoy 6:00pm',
-        status: 'Pendiente',
-        statusColor: '#9CA3AF'
-    },
-    {
-        id: '2',
-        title: 'Hacer ejercicio',
-        description: 'Hacer al menos 30 minutos de ejercicio al aire libre',
-        deadline: 'Hoy 6:00pm',
-        status: 'No completada',
-        statusColor: '#FF5E5E'
-    }
-];
-
-const TASKS_PREVIOUS = [
-    {
-        id: '3',
-        title: 'Tarea de inglés',
-        description: 'Hacer la tarea de inglés y leer un cuento en inglés',
-        deadline: '20/sep/2025 5:30pm',
-        status: 'Completada',
-        statusColor: '#84CC16'
-    },
-    {
-        id: '4',
-        title: 'Pasear a Toby',
-        description: 'Sacar a Toby a pasear junto con papá y tus hermanos',
-        deadline: '18/sep/2025 6:00pm',
-        status: 'En espera de aprobación',
-        statusColor: '#F97316'
-    }
-];
 
 // Apps restringidas de ejemplo por hijo
 const DEFAULT_RESTRICTED_APPS = [
@@ -72,32 +35,48 @@ export default function PerfilDeHijo() {
     const [selectedChildId, setSelectedChildId] = useState(params.id || null);
     
     // ViewModel logic
-    const { hijos: children, loading, fetchHijos } = useHijosViewModel();
+    const { hijos: children, loading: loadingHijos, fetchHijos } = useHijosViewModel();
+    const { tareas, fetchTareas, loading: loadingTareas } = useTareasViewModel();
+    const { policy, fetchPolicy, loading: loadingPolicy } = usePoliciesViewModel();
 
-    useEffect(() => {
-        fetchHijos().then(() => {
-            // Seleccionar hijo por params o el primero
-            if (!selectedChildId) {
-                if (params.id) {
-                    setSelectedChildId(params.id);
-                } else if (params.name && children.length > 0) {
-                    const found = children.find(h => h.nombre === params.name);
-                    setSelectedChildId(found ? found.id : children[0].id);
-                } else if (children.length > 0) {
-                    setSelectedChildId(children[0].id);
+    useFocusEffect(
+        useCallback(() => {
+            fetchHijos().then(() => {
+                // Seleccionar hijo por params o el primero
+                if (!selectedChildId && children.length > 0) {
+                    if (params.id) {
+                        setSelectedChildId(params.id);
+                    } else if (params.name) {
+                        const found = children.find(h => h.nombre === params.name);
+                        setSelectedChildId(found ? found.id : children[0].id);
+                    } else {
+                        setSelectedChildId(children[0].id);
+                    }
                 }
-            }
-        }).catch((err) => {
-             // Si el error es de token invalido, redirigimos
-             if (err?.message?.includes('No token')) {
-                 router.replace('/loginpapa');
-             }
-        });
-    }, [fetchHijos, params.id, params.name, children.length, selectedChildId]);
+            }).catch((err) => {
+                 if (err?.message?.includes('No token')) {
+                     router.replace('/loginpapa');
+                 }
+            });
+            fetchTareas();
+        }, [])
+    );
 
     // Hijo actualmente seleccionado
     const currentChild = children.find(c => c.id === selectedChildId) || children[0];
     const currentIndex = children.findIndex(c => c.id === selectedChildId);
+
+    // Reaccionar cuando cambiamos de niño o vuelve a enfocarse la pantalla
+    useFocusEffect(
+        useCallback(() => {
+            if (currentChild?.id) {
+                fetchPolicy(currentChild.id);
+            }
+        }, [currentChild?.id, fetchPolicy])
+    );
+
+    // Filtrar tareas asignadas al hijo seleccionado
+    const childTasks = tareas.filter(t => t.assignments?.some(a => a.child_id === currentChild?.id));
 
     const handleBackPress = () => router.back();
     const handleAssignTask = () => router.push({
@@ -123,54 +102,44 @@ export default function PerfilDeHijo() {
 
     const linkedInfo = getLinkedText(currentChild);
 
-    const renderTask = (task) => (
-        <View key={task.id} style={styles.taskCard}>
-            <View style={styles.taskInfo}>
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskDescription}>{task.description}</Text>
-                <Text style={styles.taskDeadline}>Fecha límite: <Text style={styles.deadlineValue}>{task.deadline}</Text></Text>
+    const renderTask = (task) => {
+        const assignment = task.assignments?.find(a => a.child_id === currentChild?.id);
+        const statusMap = {
+            'assigned': { text: 'Pendiente', color: '#9CA3AF' },
+            'in_progress': { text: 'En progreso', color: '#F59E0B' },
+            'completed': { text: 'En espera de aprobación', color: '#F97316' },
+            'verified': { text: 'Completada', color: '#84CC16' }
+        };
+        const taskStatusInfo = statusMap[assignment?.status || 'assigned'];
 
-                <View style={styles.statusRow}>
-                    <Text style={styles.statusLabel}>Estado:</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: task.statusColor }]}>
-                        <Text style={styles.statusBadgeText}>{task.status}</Text>
+        return (
+            <View key={task.id} style={styles.taskCard}>
+                <View style={styles.taskInfo}>
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskDescription}>{task.description}</Text>
+                    <Text style={styles.taskDeadline}>Fecha límite: <Text style={styles.deadlineValue}>{task.due_date} {task.due_time}</Text></Text>
+
+                    <View style={styles.statusRow}>
+                        <Text style={styles.statusLabel}>Estado:</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: taskStatusInfo.color }]}>
+                            <Text style={styles.statusBadgeText}>{taskStatusInfo.text}</Text>
+                        </View>
                     </View>
                 </View>
-            </View>
-            <View style={styles.taskAction}>
-                {task.status === 'Pendiente' ? (
-                    <Ionicons name="close-circle-sharp" size={32} color="#F87171" />
-                ) : (
-                    <View style={styles.completedSpacer} />
-                )}
-            </View>
-        </View>
-    );
-
-    if (loading) {
-        return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color={Colors.primary} />
+                <View style={styles.taskAction}>
+                    {assignment?.status !== 'verified' ? (
+                        <Ionicons name="close-circle-sharp" size={32} color="#F87171" />
+                    ) : (
+                        <View style={styles.completedSpacer} />
+                    )}
+                </View>
             </View>
         );
-    }
+    };
 
-    if (children.length === 0) {
-        return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <Ionicons name="people-outline" size={60} color={Colors.darkgraytext} />
-                <Text style={{ fontFamily: Fonts.figtreebold, fontSize: 18, color: Colors.darkgraytext, marginTop: 15 }}>
-                    No hay hijos registrados
-                </Text>
-                <TouchableOpacity
-                    style={{ marginTop: 20, backgroundColor: Colors.primary, paddingVertical: 12, paddingHorizontal: 30, borderRadius: 20 }}
-                    onPress={() => router.push('/perfilnuevo')}
-                >
-                    <Text style={{ color: Colors.white, fontFamily: Fonts.figtreebold, fontWeight: 'bold' }}>Agregar hijo</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    }
+    const isInitialLoading = (loadingHijos && children.length === 0) 
+                          || (loadingTareas && tareas.length === 0) 
+                          || (loadingPolicy && !policy);
 
     return (
         <View style={styles.container}>
@@ -232,6 +201,24 @@ export default function PerfilDeHijo() {
                 </View>
             </View>
 
+            {isInitialLoading ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                </View>
+            ) : children.length === 0 ? (
+                <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', flex: 1 }]}>
+                    <Ionicons name="people-outline" size={60} color={Colors.darkgraytext} />
+                    <Text style={{ fontFamily: Fonts.figtreebold, fontSize: 18, color: Colors.darkgraytext, marginTop: 15 }}>
+                        No hay hijos registrados
+                    </Text>
+                    <TouchableOpacity
+                        style={{ marginTop: 20, backgroundColor: Colors.primary, paddingVertical: 12, paddingHorizontal: 30, borderRadius: 20 }}
+                        onPress={() => router.push('/perfilnuevo')}
+                    >
+                        <Text style={{ color: Colors.white, fontFamily: Fonts.figtreebold, fontWeight: 'bold' }}>Agregar hijo</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : (
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Restricted Apps */}
                 <Text style={styles.sectionTitle}>Aplicaciones restringidas</Text>
@@ -243,11 +230,18 @@ export default function PerfilDeHijo() {
                     })}
                 >
                     <View style={styles.appsContainer}>
-                        {DEFAULT_RESTRICTED_APPS.map(app => (
-                            <View key={app.id} style={[styles.appIcon, { backgroundColor: app.color }]}>
-                                {renderAppIcon(app)}
-                            </View>
-                        ))}
+                        {(policy?.restricted_apps && Array.isArray(policy.restricted_apps) && policy.restricted_apps.length > 0) ? (
+                            policy.restricted_apps.map((appId, idx) => {
+                                const app = DEFAULT_RESTRICTED_APPS.find(a => a.id === appId);
+                                return app ? (
+                                    <View key={appId} style={[styles.appIcon, { backgroundColor: app.color }]}>
+                                        {renderAppIcon(app)}
+                                    </View>
+                                ) : null;
+                            })
+                        ) : (
+                            <Text style={{ fontFamily: Fonts.figtreeRegular, color: Colors.darkgraytext }}>Ninguna app restringida</Text>
+                        )}
                     </View>
                     <Feather name="chevron-right" size={24} color="black" />
                 </TouchableOpacity>
@@ -257,10 +251,10 @@ export default function PerfilDeHijo() {
                 <View style={styles.sleepCard}>
                     <View style={styles.sleepInfo}>
                         <Text style={styles.timeLabel}>De:</Text>
-                        <Text style={styles.timeValue}>21:30</Text>
+                        <Text style={styles.timeValue}>{policy?.sleep_start_time ? policy.sleep_start_time.substring(0,5) : '--:--'}</Text>
                         <Text style={[styles.timeLabel, { marginLeft: 15 }]}>Hasta:</Text>
-                        <Text style={styles.timeValue}>8:00</Text>
-                        <Text style={styles.daysText}>Lun - Vie</Text>
+                        <Text style={styles.timeValue}>{policy?.sleep_end_time ? policy.sleep_end_time.substring(0,5) : '--:--'}</Text>
+                        <Text style={styles.daysText}>L - D</Text>
                     </View>
                     <TouchableOpacity
                         style={styles.editSleepButton}
@@ -299,11 +293,12 @@ export default function PerfilDeHijo() {
 
                 {/* Task List */}
                 <View style={styles.taskList}>
-                    {(activeTab === 'Semana' ? TASKS_THIS_WEEK : TASKS_PREVIOUS).map(renderTask)}
+                    {childTasks.map(renderTask)}
                 </View>
 
                 <View style={{ height: 100 }} />
             </ScrollView>
+            )}
 
             <BarraNavegacion activeTab="inicio" />
         </View>

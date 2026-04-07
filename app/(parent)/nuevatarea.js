@@ -1,10 +1,11 @@
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from "react";
-import { Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useState, useEffect } from "react";
+import { Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, Modal } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
+import { useTareasViewModel } from "../../viewmodels/useTareasViewModel";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -20,6 +21,8 @@ export default function NuevaTarea() {
     const params = useLocalSearchParams();
     const isEditMode = params.mode === 'edit';
 
+    const { crearTarea, editarTarea } = useTareasViewModel();
+
     const [selectedColor, setSelectedColor] = useState(params.color || Colors.green);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -34,61 +37,69 @@ export default function NuevaTarea() {
     // Date Logic
     const [deadlineDate, setDeadlineDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [hasSelectedDate, setHasSelectedDate] = useState(isEditMode);
+    const [hasSelectedDate, setHasSelectedDate] = useState(isEditMode && !!params.due_date);
 
     // Time Logic
+    const [showTimePicker, setShowTimePicker] = useState(false);
     const [ampm, setAmpm] = useState('AM');
     const [selectedHour, setSelectedHour] = useState('07');
     const [selectedMinute, setSelectedMinute] = useState('30');
 
-    // Parse duration for lock time
-    const parseDuration = (dur) => {
-        let h = 0;
-        let m = 0;
-        if (!dur) return { h, m };
-
-        if (dur.includes('hr')) {
-            const parts = dur.split('hr');
-            h = parseInt(parts[0].trim());
-            if (parts[1]) m = parseInt(parts[1].replace('min', '').trim());
-        } else if (dur.includes('min')) {
-            m = parseInt(dur.replace('min', '').trim());
+    useEffect(() => {
+        if (isEditMode && params.due_date) {
+            const parts = params.due_date.split('-');
+            if (parts.length === 3) {
+                const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                setDeadlineDate(dateObj);
+            }
+            if (params.due_time) {
+                const timeParts = params.due_time.split(':');
+                if (timeParts.length >= 2 && timeParts[0] !== 'null') {
+                    let h = parseInt(timeParts[0]);
+                    setAmpm(h >= 12 ? 'PM' : 'AM');
+                    if (h > 12) h -= 12;
+                    if (h === 0) h = 12;
+                    setSelectedHour(h.toString().padStart(2, '0'));
+                    setSelectedMinute(timeParts[1]);
+                }
+            }
         }
-        return { h, m };
-    };
+    }, [isEditMode, params.due_date, params.due_time]);
 
-    const initialDuration = parseDuration(params.duration);
-    const [lockTimeHours, setLockTimeHours] = useState(initialDuration.h);
-    const [lockTimeMinutes, setLockTimeMinutes] = useState(initialDuration.m);
+    // Parse duration for lock time
+    const [lockTimeHours, setLockTimeHours] = useState(params.duration_hours ? parseInt(params.duration_hours) : 0);
+    const [lockTimeMinutes, setLockTimeMinutes] = useState(params.duration_minutes ? parseInt(params.duration_minutes) : 0);
 
     const handleBackPress = () => {
         router.back();
     };
 
-    const handleCreatePress = () => {
-        // Construct the new task object
-        const durStr = lockTimeHours > 0
-            ? `${lockTimeHours}hr${lockTimeMinutes > 0 ? ` ${lockTimeMinutes}min` : ''}`
-            : `${lockTimeMinutes}min`;
+    const handleCreatePress = async () => {
+        let hour24 = parseInt(selectedHour);
+        if (ampm === 'PM' && hour24 < 12) hour24 += 12;
+        if (ampm === 'AM' && hour24 === 12) hour24 = 0;
+        
+        const dueTimeFormatted = `${hour24.toString().padStart(2, '0')}:${selectedMinute}:00`;
+        const dueDateFormatted = hasSelectedDate ? `${formattedYear}-${formattedMonth}-${formattedDay}` : null;
 
-        const newTaskObj = {
-            id: isEditMode && params.id ? params.id : Date.now().toString(),
+        const payload = {
             title: title || 'Nueva Tarea',
             description: description || '',
-            deadline: hasSelectedDate
-                ? `${formattedDay}/${formattedMonth}/${formattedYear} ${selectedHour}:${selectedMinute}${ampm.toLowerCase()}`
-                : 'Sin fecha',
-            duration: durStr,
-            keys: rewards,
-            color: selectedColor,
-            assignedTo: '' // New tasks start unassigned
+            due_date: dueDateFormatted,
+            due_time: hasSelectedDate ? dueTimeFormatted : null,
+            duration_hours: lockTimeHours,
+            duration_minutes: lockTimeMinutes,
+            reward_keys: rewards,
+            color: selectedColor
         };
 
-        // Navigate back and pass the new task as a param
-        router.replace({
-            pathname: '/admintareas',
-            params: { newTask: JSON.stringify(newTaskObj) }
-        });
+        if (isEditMode) {
+            await editarTarea(params.id, payload);
+        } else {
+            await crearTarea(payload);
+        }
+
+        router.replace('/admintareas');
     };
 
     const incrementReward = () => setRewards(prev => prev + 5);
@@ -117,11 +128,38 @@ export default function NuevaTarea() {
     };
 
     const onDateChange = (event, selectedDate) => {
-        setShowDatePicker(false);
+        if (Platform.OS === 'android') {
+            setShowDatePicker(false);
+        }
         if (selectedDate) {
             setDeadlineDate(selectedDate);
             setHasSelectedDate(true);
         }
+    };
+
+    const onTimeChange = (event, selectedTime) => {
+        if (Platform.OS === 'android') {
+            setShowTimePicker(false);
+        }
+        if (selectedTime && event.type !== 'dismissed') {
+            let hours = selectedTime.getHours();
+            const minutes = selectedTime.getMinutes();
+            const isPM = hours >= 12;
+            setAmpm(isPM ? 'PM' : 'AM');
+            if (hours > 12) hours -= 12;
+            if (hours === 0) hours = 12;
+            setSelectedHour(hours.toString().padStart(2, '0'));
+            setSelectedMinute(minutes.toString().padStart(2, '0'));
+        }
+    };
+
+    const getTimeDate = () => {
+        let hour24 = parseInt(selectedHour || '0');
+        if (ampm === 'PM' && hour24 < 12) hour24 += 12;
+        if (ampm === 'AM' && hour24 === 12) hour24 = 0;
+        const d = new Date();
+        d.setHours(hour24, parseInt(selectedMinute || '0'), 0);
+        return d;
     };
 
     const formattedDay = hasSelectedDate ? deadlineDate.getDate().toString().padStart(2, '0') : 'dd';
@@ -219,47 +257,33 @@ export default function NuevaTarea() {
                         </View>
                         <View style={styles.dateTimeField}>
                             <Text style={styles.label}>Hora</Text>
-                            <View style={styles.timeInputContainer}>
+                            <TouchableOpacity style={styles.timeInputContainer} onPress={() => setShowTimePicker(true)}>
                                 <View style={styles.timeUnit}>
-                                    <TextInput
-                                        style={styles.timeInputBox}
-                                        value={selectedHour}
-                                        onChangeText={setSelectedHour}
-                                        keyboardType="numeric"
-                                        maxLength={2}
-                                    />
+                                    <View style={styles.timeInputBox}>
+                                        <Text style={styles.timeInputText}>{selectedHour}</Text>
+                                    </View>
                                     <Text style={styles.timeLabel}>Hora</Text>
                                 </View>
                                 <Text style={styles.colon}>:</Text>
                                 <View style={styles.timeUnit}>
-                                    <TextInput
-                                        style={styles.timeInputBox}
-                                        value={selectedMinute}
-                                        onChangeText={setSelectedMinute}
-                                        keyboardType="numeric"
-                                        maxLength={2}
-                                    />
+                                    <View style={styles.timeInputBox}>
+                                        <Text style={styles.timeInputText}>{selectedMinute}</Text>
+                                    </View>
                                     <Text style={styles.timeLabel}>Minuto</Text>
                                 </View>
                                 <View style={styles.ampmContainer}>
-                                    <TouchableOpacity
-                                        style={[styles.ampmButton, ampm === 'AM' && styles.ampmActive]}
-                                        onPress={() => setAmpm('AM')}
-                                    >
+                                    <View style={[styles.ampmButton, ampm === 'AM' && styles.ampmActive]}>
                                         <Text style={[styles.ampmText, ampm === 'AM' && styles.ampmTextActive]}>AM</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[styles.ampmButton, ampm === 'PM' && styles.ampmActive]}
-                                        onPress={() => setAmpm('PM')}
-                                    >
+                                    </View>
+                                    <View style={[styles.ampmButton, ampm === 'PM' && styles.ampmActive]}>
                                         <Text style={[styles.ampmText, ampm === 'PM' && styles.ampmTextActive]}>PM</Text>
-                                    </TouchableOpacity>
+                                    </View>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                         </View>
                     </View>
 
-                    {showDatePicker && (
+                    {showDatePicker && Platform.OS === 'android' && (
                         <DateTimePicker
                             value={deadlineDate}
                             mode="date"
@@ -267,6 +291,62 @@ export default function NuevaTarea() {
                             onChange={onDateChange}
                             minimumDate={new Date()}
                         />
+                    )}
+
+                    {showDatePicker && Platform.OS === 'ios' && (
+                        <Modal transparent={true} visible={showDatePicker} animationType="fade">
+                            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowDatePicker(false)}>
+                                <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+                                    <View style={styles.modalHeader}>
+                                        <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                                            <Text style={styles.modalButtonText}>Cerrar</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                                            <Text style={styles.modalButtonTextDone}>Listo</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <DateTimePicker
+                                        value={deadlineDate}
+                                        mode="date"
+                                        display="spinner"
+                                        onChange={onDateChange}
+                                        minimumDate={new Date()}
+                                    />
+                                </View>
+                            </TouchableOpacity>
+                        </Modal>
+                    )}
+
+                    {showTimePicker && Platform.OS === 'android' && (
+                        <DateTimePicker
+                            value={getTimeDate()}
+                            mode="time"
+                            display="default"
+                            onChange={onTimeChange}
+                        />
+                    )}
+
+                    {showTimePicker && Platform.OS === 'ios' && (
+                        <Modal transparent={true} visible={showTimePicker} animationType="fade">
+                            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowTimePicker(false)}>
+                                <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+                                    <View style={styles.modalHeader}>
+                                        <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                                            <Text style={styles.modalButtonText}>Cerrar</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                                            <Text style={styles.modalButtonTextDone}>Listo</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <DateTimePicker
+                                        value={getTimeDate()}
+                                        mode="time"
+                                        display="spinner"
+                                        onChange={onTimeChange}
+                                    />
+                                </View>
+                            </TouchableOpacity>
+                        </Modal>
                     )}
 
                     {/* Recompensas */}
@@ -511,7 +591,10 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         width: 40,
         height: 35,
-        textAlign: 'center',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    timeInputText: {
         fontFamily: Fonts.figtreebold,
         fontSize: 16,
         color: Colors.black,
@@ -647,5 +730,33 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.figtreebold,
         fontSize: 18,
         fontWeight: 'bold',
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalContent: {
+        backgroundColor: Colors.white,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+        paddingBottom: 40,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    modalButtonText: {
+        color: Colors.primary,
+        fontFamily: Fonts.figtreeRegular,
+        fontSize: 16,
+    },
+    modalButtonTextDone: {
+        color: Colors.primary,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        fontSize: 16,
     }
 });

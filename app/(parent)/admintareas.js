@@ -1,55 +1,22 @@
 import { Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from "react";
-import { Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from "react";
+import { Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import BarraNavegacion from "../../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
+import { useTareasViewModel } from "../../viewmodels/useTareasViewModel";
+import { useHijosViewModel } from "../../viewmodels/useHijosViewModel";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const TASKS_DATA = [
-    {
-        id: '1',
-        title: 'Tender la cama',
-        description: 'Tender la cama correctamente y acomodar los peluches',
-        deadline: 'Hoy 6:00pm',
-        duration: '35min',
-        keys: 25,
-        color: Colors.orange,
-        assignedProfiles: ['Angel']
-    },
-    {
-        id: '2',
-        title: 'Hacer ejercicio',
-        description: 'Hacer al menos 30 minutos de ejercicio al aire libre',
-        deadline: '26/sep/2025 12:00pm',
-        duration: '1hr',
-        keys: 30,
-        color: Colors.cyan,
-        assignedProfiles: ['Cons']
-    },
-    {
-        id: '3',
-        title: 'Tarea de la escuela',
-        description: 'Terminar todas las tareas de la semana que dejaron en la escuela',
-        deadline: '28/sep/2025 9:30pm',
-        duration: '2hrs',
-        keys: 50,
-        color: Colors.green,
-        assignedProfiles: ['Fer']
-    }
-];
-
-const LIVE_PROFILES = [
-    { id: '101', name: 'Cons', avatar: require('../../assets/images/capicons.png') },
-    { id: '102', name: 'Angel', avatar: require('../../assets/images/capiangel.png') },
-    { id: '103', name: 'Fer', avatar: require('../../assets/images/capifer.png') },
-];
 
 export default function AdminTareas() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const [tasks, setTasks] = useState(TASKS_DATA);
+    
+    // ViewModels offline first
+    const { tareas: tasks, fetchTareas, eliminarTarea, asignarTarea, loading: loadingTasks } = useTareasViewModel();
+    const { hijos, fetchHijos } = useHijosViewModel();
+
     const [expandedTask, setExpandedTask] = useState(null);
 
     // Modal States
@@ -59,22 +26,12 @@ export default function AdminTareas() {
     const [selectedTask, setSelectedTask] = useState(null);
     const [targetUser, setTargetUser] = useState('');
 
-    useEffect(() => {
-        if (params.newTask) {
-            try {
-                const task = JSON.parse(params.newTask);
-                setTasks(prev => {
-                    const exists = prev.find(t => t.id === task.id);
-                    if (exists) {
-                        return prev.map(t => t.id === task.id ? task : t);
-                    }
-                    return [task, ...prev];
-                });
-            } catch (e) {
-                console.error("Error parsing task", e);
-            }
-        }
-    }, [params.newTask]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchTareas();
+            fetchHijos();
+        }, [])
+    );
 
     const handleBackPress = () => {
         router.back();
@@ -88,7 +45,6 @@ export default function AdminTareas() {
         setExpandedTask(expandedTask === taskId ? null : taskId);
     };
 
-    // Alert Handlers
     const openDeleteAlert = (task) => {
         setSelectedTask(task);
         setDeleteModalVisible(true);
@@ -98,7 +54,7 @@ export default function AdminTareas() {
         setSelectedTask(task);
         setTargetUser(user);
         setUnassignModalVisible(true);
-        setExpandedTask(null); // Close dropdown
+        setExpandedTask(null); 
     };
 
     const openAssignModal = (task) => {
@@ -107,48 +63,39 @@ export default function AdminTareas() {
         setExpandedTask(null);
     };
 
-    const handleAssignProfile = (profileName) => {
+    const handleAssignProfile = async (childId) => {
         if (selectedTask) {
-            setTasks(prev => prev.map(t => {
-                if (t.id === selectedTask.id) {
-                    const currentProfiles = t.assignedProfiles || [];
-                    if (!currentProfiles.includes(profileName)) {
-                        return { ...t, assignedProfiles: [...currentProfiles, profileName] };
-                    }
-                }
-                return t;
-            }));
+            await asignarTarea(selectedTask.id, childId);
             setAssignModalVisible(false);
         }
     };
 
-    const handleDeleteConfirm = () => {
+    const handleDeleteConfirm = async () => {
         if (selectedTask) {
-            setTasks(prev => prev.filter(t => t.id !== selectedTask.id));
+            await eliminarTarea(selectedTask.id);
             setDeleteModalVisible(false);
             setSelectedTask(null);
         }
     };
 
     const handleUnassignConfirm = () => {
-        if (selectedTask && targetUser) {
-            setTasks(prev => prev.map(t => {
-                if (t.id === selectedTask.id) {
-                    return {
-                        ...t,
-                        assignedProfiles: (t.assignedProfiles || []).filter(u => u !== targetUser)
-                    };
-                }
-                return t;
-            }));
-        }
+        // Mock desasignar since we don't have endpoint
         setUnassignModalVisible(false);
+    };
+
+    // Helper functions for UI rendering mapping
+    const getAssignedNames = (assignments) => {
+        if (!assignments || !hijos) return [];
+        return assignments.map(a => {
+            const h = hijos.find(hijo => hijo.id === a.child_id);
+            return h ? h.nombre : 'Desconocido';
+        });
     };
 
     return (
         <View style={styles.container}>
             {/* Header Content */}
-            <View style={styles.headerContent}>
+            <View style={styles.header}>
                 <Text style={styles.headerTitle}>Administrar tareas</Text>
             </View>
 
@@ -169,25 +116,27 @@ export default function AdminTareas() {
                 </TouchableOpacity>
 
                 {/* Lista de Tareas */}
-                {tasks.map((task) => (
+                {tasks.map((task) => {
+                    const assignedNames = getAssignedNames(task.assignments);
+                    return (
                     <View key={task.id} style={styles.taskCard}>
 
                         {/* Header de la tarjeta con tiempo y llaves */}
                         <View style={styles.cardHeader}>
                             <View style={styles.rewardContainer}>
                                 <MaterialIcons name="timer" size={20} color={Utils.getColor(task.color)} />
-                                <Text style={styles.rewardText}>{task.duration}</Text>
+                                <Text style={styles.rewardText}>{task.duration_hours || 0}h {task.duration_minutes || 0}m</Text>
                             </View>
                             <View style={styles.rewardContainer}>
                                 <FontAwesome5 name="key" size={16} color="#DAA520" />
-                                <Text style={styles.rewardText}>{task.keys}</Text>
+                                <Text style={styles.rewardText}>{task.reward_keys || 0}</Text>
                             </View>
                         </View>
 
                         {/* Contenido Principal */}
-                        <Text style={[styles.taskTitle, { color: task.color }]}>{task.title}</Text>
+                        <Text style={[styles.taskTitle, { color: task.color || Colors.primary }]}>{task.title}</Text>
                         <Text style={styles.taskDescription}>{task.description}</Text>
-                        <Text style={styles.deadline}>Fecha límite: <Text style={styles.deadlineValue}>{task.deadline}</Text></Text>
+                        <Text style={styles.deadline}>Fecha límite: <Text style={styles.deadlineValue}>{task.due_date} {task.due_time}</Text></Text>
 
                         {/* Acciones Footer */}
                         <View style={styles.cardFooter}>
@@ -204,9 +153,12 @@ export default function AdminTareas() {
                                             id: task.id,
                                             title: task.title,
                                             description: task.description,
-                                            keys: task.keys,
-                                            duration: task.duration,
-                                            color: task.color
+                                            keys: task.reward_keys,
+                                            duration_hours: task.duration_hours,
+                                            duration_minutes: task.duration_minutes,
+                                            due_date: task.due_date,
+                                            due_time: task.due_time,
+                                            color: task.color || Colors.primary
                                         }
                                     })}
                                 >
@@ -233,7 +185,7 @@ export default function AdminTareas() {
 
                                 {expandedTask === task.id && (
                                     <View style={styles.dropdownMenu}>
-                                        {(task.assignedProfiles || []).map((user, idx) => (
+                                        {assignedNames.map((user, idx) => (
                                             <View key={idx}>
                                                 <TouchableOpacity style={styles.dropdownItem}>
                                                     <Text style={styles.dropdownText}>{user}</Text>
@@ -241,10 +193,10 @@ export default function AdminTareas() {
                                                         <View style={styles.dash} />
                                                     </TouchableOpacity>
                                                 </TouchableOpacity>
-                                                {idx < (task.assignedProfiles.length - 1 || 0) && <View style={styles.divider} />}
+                                                {idx < (assignedNames.length - 1 || 0) && <View style={styles.divider} />}
                                             </View>
                                         ))}
-                                        {task.assignedProfiles?.length > 0 && <View style={styles.divider} />}
+                                        {assignedNames.length > 0 && <View style={styles.divider} />}
                                         <TouchableOpacity style={styles.dropdownItem} onPress={() => openAssignModal(task)}>
                                             <Text style={styles.dropdownInfoText}>Asignar a otro perfil +</Text>
                                         </TouchableOpacity>
@@ -253,7 +205,7 @@ export default function AdminTareas() {
                             </View>
                         </View>
                     </View>
-                ))}
+                )})}
 
                 {/* Espacio extra para que no tape la barra de navegación */}
                 <View style={{ height: 100 }} />
@@ -359,26 +311,29 @@ export default function AdminTareas() {
                         </TouchableOpacity>
 
                         <ScrollView style={styles.assignList} showsVerticalScrollIndicator={false}>
-                            {LIVE_PROFILES.map((profile) => (
+                            {(hijos || []).map((profile) => {
+                                const isAssigned = selectedTask?.assignments?.some(a => a.child_id === profile.id);
+                                return (
                                 <View key={profile.id} style={styles.assignProfileItem}>
                                     <View style={styles.assignProfileInfo}>
-                                        <Image source={profile.avatar} style={styles.assignAvatar} resizeMode="contain" />
-                                        <Text style={styles.assignName}>{profile.name}</Text>
+                                        {/* Avatar temporal, luego de S3 se cargará con URI real */}
+                                        <Image source={require('../../assets/images/capicons.png')} style={styles.assignAvatar} resizeMode="contain" />
+                                        <Text style={styles.assignName}>{profile.nombre}</Text>
                                     </View>
                                     <TouchableOpacity
                                         style={[
                                             styles.assignActionButton,
-                                            selectedTask?.assignedProfiles?.includes(profile.name) && styles.assignActionButtonDisabled
+                                            isAssigned && styles.assignActionButtonDisabled
                                         ]}
-                                        onPress={() => handleAssignProfile(profile.name)}
-                                        disabled={selectedTask?.assignedProfiles?.includes(profile.name)}
+                                        onPress={() => handleAssignProfile(profile.id)}
+                                        disabled={isAssigned}
                                     >
                                         <Text style={styles.assignActionText}>
-                                            {selectedTask?.assignedProfiles?.includes(profile.name) ? 'Asignada' : 'Asignar'}
+                                            {isAssigned ? 'Asignada' : 'Asignar'}
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
-                            ))}
+                            )})}
                         </ScrollView>
                     </View>
                 </View>

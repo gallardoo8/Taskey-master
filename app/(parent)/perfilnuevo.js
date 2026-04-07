@@ -2,7 +2,8 @@ import { useHijosViewModel } from '../../viewmodels/useHijosViewModel';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from "react";
-import { Alert, Dimensions, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform } from "react-native";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import BarraNavegacion from "../../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
@@ -10,28 +11,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const GENDER_OPTIONS = ['Masculino', 'Femenino', 'Otro'];
 
-const MONTHS = [
-    { value: 1, label: 'Enero' },
-    { value: 2, label: 'Febrero' },
-    { value: 3, label: 'Marzo' },
-    { value: 4, label: 'Abril' },
-    { value: 5, label: 'Mayo' },
-    { value: 6, label: 'Junio' },
-    { value: 7, label: 'Julio' },
-    { value: 8, label: 'Agosto' },
-    { value: 9, label: 'Septiembre' },
-    { value: 10, label: 'Octubre' },
-    { value: 11, label: 'Noviembre' },
-    { value: 12, label: 'Diciembre' },
-];
 
-const currentYear = new Date().getFullYear();
-const YEARS = Array.from({ length: 30 }, (_, i) => currentYear - i);
-
-function getDaysInMonth(month, year) {
-    if (!month || !year) return Array.from({ length: 31 }, (_, i) => i + 1);
-    return Array.from({ length: new Date(year, month, 0).getDate() }, (_, i) => i + 1);
-}
 
 // Calcula la edad a partir de la fecha de nacimiento
 function calcularEdad(fechaNacimiento) {
@@ -61,19 +41,21 @@ export default function PerfilNuevo() {
 
     // Logica de las fechas
     const initDate = params.fecha_nacimiento ? new Date(params.fecha_nacimiento) : null;
-    const [selectedDay, setSelectedDay] = useState(initDate ? initDate.getDate() : null);
-    const [selectedMonth, setSelectedMonth] = useState(initDate ? initDate.getMonth() + 1 : null);
-    const [selectedYear, setSelectedYear] = useState(initDate ? initDate.getFullYear() : null);
+    const [birthday, setBirthday] = useState(initDate || new Date());
+    const [hasSelectedDate, setHasSelectedDate] = useState(!!initDate);
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
-    const [showDayPicker, setShowDayPicker] = useState(false);
-    const [showMonthPicker, setShowMonthPicker] = useState(false);
-    const [showYearPicker, setShowYearPicker] = useState(false);
-
-    const hasSelectedDate = selectedDay !== null && selectedMonth !== null && selectedYear !== null;
-    const birthday = hasSelectedDate ? new Date(selectedYear, selectedMonth - 1, selectedDay) : null;
     const edadCalculada = hasSelectedDate ? calcularEdad(birthday) : null;
 
-    const availableDays = getDaysInMonth(selectedMonth, selectedYear);
+    const onDateChange = (event, selectedDate) => {
+        if (Platform.OS === 'android') {
+            setShowDatePicker(false);
+        }
+        if (selectedDate) {
+            setBirthday(selectedDate);
+            setHasSelectedDate(true);
+        }
+    };
 
     const handleBackPress = () => {
         router.back();
@@ -87,7 +69,7 @@ export default function PerfilNuevo() {
 
         setSaving(true);
         const fechaStr = hasSelectedDate
-            ? `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`
+            ? `${birthday.getFullYear()}-${String(birthday.getMonth() + 1).padStart(2, '0')}-${String(birthday.getDate()).padStart(2, '0')}`
             : null;
 
         const datos = {
@@ -124,9 +106,9 @@ export default function PerfilNuevo() {
         setSaving(false);
     };
 
-    const formattedDay = selectedDay ? String(selectedDay).padStart(2, '0') : '';
-    const formattedMonth = selectedMonth ? String(selectedMonth).padStart(2, '0') : '';
-    const formattedYear = selectedYear ? String(selectedYear) : '';
+    const formattedDay = hasSelectedDate ? String(birthday.getDate()).padStart(2, '0') : '';
+    const formattedMonth = hasSelectedDate ? String(birthday.getMonth() + 1).padStart(2, '0') : '';
+    const formattedYear = hasSelectedDate ? String(birthday.getFullYear()) : '';
 
     return (
         <View style={styles.container}>
@@ -213,20 +195,54 @@ export default function PerfilNuevo() {
                         Cumpleaños <Text style={{ fontSize: 16 }}>🎂</Text>
                     </Text>
 
-                    <View style={styles.dateRow}>
-                        <TouchableOpacity onPress={() => setShowDayPicker(true)} style={styles.dateBox}>
+                    <TouchableOpacity style={styles.dateRowCustom} onPress={() => setShowDatePicker(true)}>
+                        <View style={styles.dateBox}>
                             <Text style={styles.dateText}>{formattedDay || 'Día'}</Text>
-                            {selectedDay && <Text style={styles.dateLabelSmall}>Día</Text>}
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setShowMonthPicker(true)} style={styles.dateBox}>
+                            {hasSelectedDate && <Text style={styles.dateLabelSmall}>Día</Text>}
+                        </View>
+                        <View style={styles.dateBox}>
                             <Text style={styles.dateText}>{formattedMonth || 'Mes'}</Text>
-                            {selectedMonth && <Text style={styles.dateLabelSmall}>Mes</Text>}
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setShowYearPicker(true)} style={styles.dateBoxYear}>
+                            {hasSelectedDate && <Text style={styles.dateLabelSmall}>Mes</Text>}
+                        </View>
+                        <View style={styles.dateBoxYear}>
                             <Text style={styles.dateText}>{formattedYear || 'Año'}</Text>
-                            {selectedYear && <Text style={styles.dateLabelSmall}>Año</Text>}
-                        </TouchableOpacity>
-                    </View>
+                            {hasSelectedDate && <Text style={styles.dateLabelSmall}>Año</Text>}
+                        </View>
+                    </TouchableOpacity>
+
+                    {showDatePicker && Platform.OS === 'android' && (
+                        <DateTimePicker
+                            value={birthday}
+                            mode="date"
+                            display="default"
+                            onChange={onDateChange}
+                            maximumDate={new Date()}
+                        />
+                    )}
+
+                    {showDatePicker && Platform.OS === 'ios' && (
+                        <Modal transparent={true} visible={showDatePicker} animationType="fade">
+                            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowDatePicker(false)}>
+                                <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+                                    <View style={styles.modalHeader}>
+                                        <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                                            <Text style={styles.modalButtonText}>Cerrar</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                                            <Text style={styles.modalButtonTextDone}>Listo</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <DateTimePicker
+                                        value={birthday}
+                                        mode="date"
+                                        display="spinner"
+                                        onChange={onDateChange}
+                                        maximumDate={new Date()}
+                                    />
+                                </View>
+                            </TouchableOpacity>
+                        </Modal>
+                    )}
 
                     {/* Edad calculada */}
                     {edadCalculada !== null && (
@@ -254,80 +270,7 @@ export default function PerfilNuevo() {
 
             <BarraNavegacion activeTab="inicio" />
 
-            {/* Modal Día */}
-            <Modal visible={showDayPicker} transparent animationType="fade">
-                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowDayPicker(false)}>
-                    <View style={styles.pickerModal}>
-                        <Text style={styles.pickerTitle}>Seleccionar día</Text>
-                        <FlatList
-                            data={availableDays}
-                            keyExtractor={(item) => item.toString()}
-                            style={styles.pickerList}
-                            showsVerticalScrollIndicator={false}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={[styles.pickerItem, selectedDay === item && styles.pickerItemActive]}
-                                    onPress={() => { setSelectedDay(item); setShowDayPicker(false); }}
-                                >
-                                    <Text style={[styles.pickerItemText, selectedDay === item && styles.pickerItemTextActive]}>
-                                        {String(item).padStart(2, '0')}
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                </TouchableOpacity>
-            </Modal>
 
-            {/* Modal Mes */}
-            <Modal visible={showMonthPicker} transparent animationType="fade">
-                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowMonthPicker(false)}>
-                    <View style={styles.pickerModal}>
-                        <Text style={styles.pickerTitle}>Seleccionar mes</Text>
-                        <FlatList
-                            data={MONTHS}
-                            keyExtractor={(item) => item.value.toString()}
-                            style={styles.pickerList}
-                            showsVerticalScrollIndicator={false}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={[styles.pickerItem, selectedMonth === item.value && styles.pickerItemActive]}
-                                    onPress={() => { setSelectedMonth(item.value); setShowMonthPicker(false); }}
-                                >
-                                    <Text style={[styles.pickerItemText, selectedMonth === item.value && styles.pickerItemTextActive]}>
-                                        {item.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                </TouchableOpacity>
-            </Modal>
-
-            {/* Modal Año */}
-            <Modal visible={showYearPicker} transparent animationType="fade">
-                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowYearPicker(false)}>
-                    <View style={styles.pickerModal}>
-                        <Text style={styles.pickerTitle}>Seleccionar año</Text>
-                        <FlatList
-                            data={YEARS}
-                            keyExtractor={(item) => item.toString()}
-                            style={styles.pickerList}
-                            showsVerticalScrollIndicator={false}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={[styles.pickerItem, selectedYear === item && styles.pickerItemActive]}
-                                    onPress={() => { setSelectedYear(item); setShowYearPicker(false); }}
-                                >
-                                    <Text style={[styles.pickerItemText, selectedYear === item && styles.pickerItemTextActive]}>
-                                        {item}
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                </TouchableOpacity>
-            </Modal>
         </View>
     );
 }
@@ -531,53 +474,39 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: Colors.black,
     },
-    // Picker Modals
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    pickerModal: {
-        backgroundColor: Colors.white,
-        borderRadius: 20,
-        width: '70%',
-        maxHeight: SCREEN_HEIGHT * 0.5,
-        paddingVertical: 20,
-        paddingHorizontal: 10,
-        ...Shadows.button,
-    },
-    pickerTitle: {
-        fontFamily: Fonts.figtreebold,
-        fontWeight: 'bold',
-        fontSize: 18,
-        color: Colors.primary,
-        textAlign: 'center',
+    // Date Row
+    dateRowCustom: {
+        flexDirection: 'row',
+        gap: 15,
         marginBottom: 15,
     },
-    pickerList: {
-        maxHeight: SCREEN_HEIGHT * 0.35,
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.5)',
     },
-    pickerItem: {
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-        marginVertical: 2,
-        marginHorizontal: 5,
+    modalContent: {
+        backgroundColor: Colors.white,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+        paddingBottom: 40,
     },
-    pickerItemActive: {
-        backgroundColor: Colors.primary,
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
     },
-    pickerItemText: {
+    modalButtonText: {
+        color: Colors.primary,
         fontFamily: Fonts.figtreeRegular,
         fontSize: 16,
-        color: Colors.black,
-        textAlign: 'center',
     },
-    pickerItemTextActive: {
-        color: Colors.white,
+    modalButtonTextDone: {
+        color: Colors.primary,
         fontFamily: Fonts.figtreebold,
         fontWeight: 'bold',
+        fontSize: 16,
     },
     // Create Button
     createButton: {

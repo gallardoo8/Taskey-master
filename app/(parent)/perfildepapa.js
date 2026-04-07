@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderRadius: 15,
         alignItems: 'center',
-        backgroundColor: '#F3F4F6',
+        backgroundColor: '#EF4444',
     },
     saveButton: {
         flex: 1,

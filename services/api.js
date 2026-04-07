@@ -188,3 +188,92 @@ export async function obtenerPerfilHijo(token) {
     }
     return data;
 }
+
+// ========================
+// TAREAS
+// ========================
+
+export async function listarTareas(token) {
+    const response = await fetch(`${API_URL}/tareas/`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Error al obtener tareas");
+    return data;
+}
+
+export async function crearTarea(token, datos) {
+    const response = await fetch(`${API_URL}/tareas/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(datos)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Error al crear tarea");
+    return data;
+}
+
+export async function editarTarea(token, tareaId, datos) {
+    const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(datos)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Error al editar tarea");
+    return data;
+}
+
+export async function eliminarTarea(token, tareaId) {
+    const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error("Error al eliminar tarea");
+    return true;
+}
+
+export async function asignarTarea(token, tareaId, childId) {
+    const response = await fetch(`${API_URL}/tareas/${tareaId}/asignar`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ child_id: childId })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Error al asignar tarea");
+    return data;
+}
+
+export async function obtenerPolitica(token, childId) {
+    const response = await fetch(`${API_URL}/policies/${childId}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Error al obtener la política");
+    return data;
+}
+
+export async function editarPolitica(token, childId, payload) {
+    const response = await fetch(`${API_URL}/policies/${childId}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Error al actualizar política");
+    return data;
+}

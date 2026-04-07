@@ -1,7 +1,9 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from "react";
-import { Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useState, useCallback, useEffect } from "react";
+import { Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform, ActivityIndicator } from "react-native";
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { usePoliciesViewModel } from '../../viewmodels/usePoliciesViewModel';
 import BarraNavegacion from "../../components/BarraNavegacion";
 import { Colors, Fonts, Shadows } from "../../styles/globalStyles";
 
@@ -12,10 +14,33 @@ const DAYS = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
 export default function HorarioDeSueno() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const childName = params.name || 'Cons';
+    const childId = params.id;
+    const childName = params.name || 'Hijo';
     const childAvatar = params.avatar || require('../../assets/images/capicons.png');
 
+    const { policy, fetchPolicy, updatePolicy, loading } = usePoliciesViewModel();
     const [schedules, setSchedules] = useState([]);
+    
+    useFocusEffect(
+        useCallback(() => {
+            if (childId) fetchPolicy(childId);
+        }, [childId])
+    );
+
+    useEffect(() => {
+        if (policy) {
+            setSchedules([{
+                id: policy.id || '1',
+                startH: policy.sleep_start_time ? policy.sleep_start_time.split(':')[0] : '21',
+                startM: policy.sleep_start_time ? policy.sleep_start_time.split(':')[1] : '30',
+                endH: policy.sleep_end_time ? policy.sleep_end_time.split(':')[0] : '07',
+                endM: policy.sleep_end_time ? policy.sleep_end_time.split(':')[1] : '30',
+                days: policy.sleep_days ? policy.sleep_days.split(',') : ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'],
+                expanded: true
+            }]);
+        }
+    }, [policy]);
+
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [scheduleToDelete, setScheduleToDelete] = useState(null);
 
@@ -27,14 +52,38 @@ export default function HorarioDeSueno() {
         ));
     };
 
-    const updateTime = (id, field, delta) => {
-        setSchedules(schedules.map(s => {
-            if (s.id !== id) return s;
-            let val = parseInt(s[field]);
-            const max = field.endsWith('H') ? 23 : 59;
-            val = (val + delta + (max + 1)) % (max + 1);
-            return { ...s, [field]: val.toString().padStart(2, '0') };
-        }));
+    const [activePicker, setActivePicker] = useState(null);
+
+    const onTimeChange = (event, selectedTime) => {
+        const currentActive = activePicker;
+        if (Platform.OS === 'android') {
+            setActivePicker(null);
+        }
+        if (selectedTime && event.type !== 'dismissed' && currentActive) {
+            const h = selectedTime.getHours().toString().padStart(2, '0');
+            const m = selectedTime.getMinutes().toString().padStart(2, '0');
+            setSchedules(schedules.map(s => {
+                if (s.id !== currentActive.id) return s;
+                if (currentActive.type === 'start') {
+                    return { ...s, startH: h, startM: m };
+                } else {
+                    return { ...s, endH: h, endM: m };
+                }
+            }));
+        }
+    };
+
+    const getActiveDate = () => {
+        if (!activePicker) return new Date();
+        const schedule = schedules.find(s => s.id === activePicker.id);
+        if (!schedule) return new Date();
+        const d = new Date();
+        if (activePicker.type === 'start') {
+            d.setHours(parseInt(schedule.startH), parseInt(schedule.startM), 0);
+        } else {
+            d.setHours(parseInt(schedule.endH), parseInt(schedule.endM), 0);
+        }
+        return d;
     };
 
     const toggleDay = (id, day) => {
@@ -60,10 +109,22 @@ export default function HorarioDeSueno() {
         }]);
     };
 
-    const handleSave = (id) => {
-        setSchedules(schedules.map(s =>
-            s.id === id ? { ...s, expanded: false } : s
-        ));
+    const handleSave = async (id) => {
+        const sched = schedules.find(s => s.id === id);
+        if (!sched) return;
+        
+        try {
+            await updatePolicy(childId, {
+                sleep_start_time: `${sched.startH}:${sched.startM}:00`,
+                sleep_end_time: `${sched.endH}:${sched.endM}:00`,
+                sleep_days: sched.days.length > 0 ? sched.days.join(',') : 'Lun,Mar,Mie,Jue,Vie,Sab,Dom'
+            });
+            setSchedules(schedules.map(s =>
+                s.id === id ? { ...s, expanded: false } : s
+            ));
+        } catch (error) {
+            console.error("Fallo actualizacion", error);
+        }
     };
 
     const openDeleteModal = (schedule) => {
@@ -136,61 +197,37 @@ export default function HorarioDeSueno() {
                                         {/* Inicio */}
                                         <View style={styles.timeCol}>
                                             <Text style={styles.timeLabel}>Inicio:</Text>
-                                            <View style={styles.timePicker}>
+                                            <TouchableOpacity style={styles.timePicker} onPress={() => setActivePicker({ id: item.id, type: 'start' })}>
                                                 <View style={styles.timeUnit}>
-                                                    <TouchableOpacity onPress={() => updateTime(item.id, 'startH', 1)}>
-                                                        <Feather name="chevron-up" size={20} color="black" />
-                                                    </TouchableOpacity>
-                                                    <View style={styles.timeBox}>
+                                                    <View style={[styles.timeBox, { marginVertical: 0 }]}>
                                                         <Text style={styles.timeText}>{item.startH}</Text>
                                                     </View>
-                                                    <TouchableOpacity onPress={() => updateTime(item.id, 'startH', -1)}>
-                                                        <Feather name="chevron-down" size={20} color="black" />
-                                                    </TouchableOpacity>
                                                 </View>
-                                                <Text style={styles.timeSeparator}>:</Text>
+                                                <Text style={[styles.timeSeparator, { marginBottom: 0 }]}>:</Text>
                                                 <View style={styles.timeUnit}>
-                                                    <TouchableOpacity onPress={() => updateTime(item.id, 'startM', 5)}>
-                                                        <Feather name="chevron-up" size={20} color="black" />
-                                                    </TouchableOpacity>
-                                                    <View style={styles.timeBox}>
+                                                    <View style={[styles.timeBox, { marginVertical: 0 }]}>
                                                         <Text style={styles.timeText}>{item.startM}</Text>
                                                     </View>
-                                                    <TouchableOpacity onPress={() => updateTime(item.id, 'startM', -5)}>
-                                                        <Feather name="chevron-down" size={20} color="black" />
-                                                    </TouchableOpacity>
                                                 </View>
-                                            </View>
+                                            </TouchableOpacity>
                                         </View>
 
                                         {/* Fin */}
                                         <View style={styles.timeCol}>
                                             <Text style={styles.timeLabel}>Fin:</Text>
-                                            <View style={styles.timePicker}>
+                                            <TouchableOpacity style={styles.timePicker} onPress={() => setActivePicker({ id: item.id, type: 'end' })}>
                                                 <View style={styles.timeUnit}>
-                                                    <TouchableOpacity onPress={() => updateTime(item.id, 'endH', 1)}>
-                                                        <Feather name="chevron-up" size={20} color="black" />
-                                                    </TouchableOpacity>
-                                                    <View style={styles.timeBox}>
+                                                    <View style={[styles.timeBox, { marginVertical: 0 }]}>
                                                         <Text style={styles.timeText}>{item.endH}</Text>
                                                     </View>
-                                                    <TouchableOpacity onPress={() => updateTime(item.id, 'endH', -1)}>
-                                                        <Feather name="chevron-down" size={20} color="black" />
-                                                    </TouchableOpacity>
                                                 </View>
-                                                <Text style={styles.timeSeparator}>:</Text>
+                                                <Text style={[styles.timeSeparator, { marginBottom: 0 }]}>:</Text>
                                                 <View style={styles.timeUnit}>
-                                                    <TouchableOpacity onPress={() => updateTime(item.id, 'endM', 5)}>
-                                                        <Feather name="chevron-up" size={20} color="black" />
-                                                    </TouchableOpacity>
-                                                    <View style={styles.timeBox}>
+                                                    <View style={[styles.timeBox, { marginVertical: 0 }]}>
                                                         <Text style={styles.timeText}>{item.endM}</Text>
                                                     </View>
-                                                    <TouchableOpacity onPress={() => updateTime(item.id, 'endM', -5)}>
-                                                        <Feather name="chevron-down" size={20} color="black" />
-                                                    </TouchableOpacity>
                                                 </View>
-                                            </View>
+                                            </TouchableOpacity>
                                         </View>
                                     </View>
 
@@ -278,6 +315,39 @@ export default function HorarioDeSueno() {
                     </View>
                 </View>
             </Modal>
+
+            {/* Time Pickers */}
+            {activePicker && Platform.OS === 'android' && (
+                <DateTimePicker
+                    value={getActiveDate()}
+                    mode="time"
+                    display="default"
+                    onChange={onTimeChange}
+                />
+            )}
+
+            {activePicker && Platform.OS === 'ios' && (
+                <Modal transparent={true} visible={!!activePicker} animationType="fade">
+                    <TouchableOpacity style={styles.pickerModalOverlay} activeOpacity={1} onPress={() => setActivePicker(null)}>
+                        <View style={styles.pickerModalContent} onStartShouldSetResponder={() => true}>
+                            <View style={styles.pickerModalHeader}>
+                                <TouchableOpacity onPress={() => setActivePicker(null)}>
+                                    <Text style={styles.pickerModalButtonText}>Cerrar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setActivePicker(null)}>
+                                    <Text style={styles.pickerModalButtonTextDone}>Listo</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <DateTimePicker
+                                value={getActiveDate()}
+                                mode="time"
+                                display="spinner"
+                                onChange={onTimeChange}
+                            />
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
+            )}
         </View>
     );
 }
@@ -640,5 +710,33 @@ const styles = StyleSheet.create({
     modalDeleteButtonText: {
         color: 'white',
         fontFamily: Fonts.figtreebold,
+    },
+    pickerModalOverlay: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    pickerModalContent: {
+        backgroundColor: Colors.white,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+        paddingBottom: 40,
+    },
+    pickerModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    pickerModalButtonText: {
+        color: Colors.primary,
+        fontFamily: Fonts.figtreeRegular,
+        fontSize: 16,
+    },
+    pickerModalButtonTextDone: {
+        color: Colors.primary,
+        fontFamily: Fonts.figtreebold,
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });

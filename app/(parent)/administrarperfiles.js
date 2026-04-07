@@ -160,14 +160,6 @@ export default function AdministrarPerfiles() {
         </TouchableOpacity>
     );
 
-    if (loading) {
-        return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
-        );
-    }
-
     return (
         <View style={styles.container}>
             {/* Custom Decorated Header */}
@@ -203,11 +195,17 @@ export default function AdministrarPerfiles() {
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="people-outline" size={50} color={Colors.darkgraytext} />
-                        <Text style={styles.emptyText}>No hay perfiles registrados</Text>
-                        <Text style={styles.emptySubtext}>Agrega un perfil para comenzar</Text>
-                    </View>
+                    loading ? (
+                        <View style={{ marginTop: 50, alignItems: 'center' }}>
+                            <ActivityIndicator size="large" color={Colors.primary} />
+                        </View>
+                    ) : (
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="people-outline" size={50} color={Colors.darkgraytext} />
+                            <Text style={styles.emptyText}>No hay perfiles registrados</Text>
+                            <Text style={styles.emptySubtext}>Agrega un perfil para comenzar</Text>
+                        </View>
+                    )
                 }
             />
 
