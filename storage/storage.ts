@@ -1,12 +1,20 @@
 // Este archivo es para guardar, eliminar y purgar totalmente el almacenamiento local de la app
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+
+const isSecureKey = (key: string) => key.includes('TOKEN') || key.includes('PASSWORD');
 
 export const storage = {
   // Lee un valor de AsyncStorage y lo deserializa de JSON a su tipo original <T>.  
   getItem: async <T>(key: string): Promise<T | null> => {
     try {
-      // AsyncStorage busca el string puro en el dispositivo
-      const jsonValue = await AsyncStorage.getItem(key);
+      // Determinar si es una llave de alta seguridad
+      let jsonValue = null;
+      if (isSecureKey(key)) {
+          jsonValue = await SecureStore.getItemAsync(key);
+      } else {
+          jsonValue = await AsyncStorage.getItem(key);
+      }
       
       // Si no hay nada, devolvemos null directamente
       if (jsonValue === null) {
@@ -26,8 +34,12 @@ export const storage = {
       // Transformamos el tipo TypeScript a un String compatible con SQLite/AsyncStorage
       const jsonValue = JSON.stringify(value);
       
-      // Ejecutamos la inserción en el disco
-      await AsyncStorage.setItem(key, jsonValue);
+      // Ejecutamos la inserción en el chip cifrado o en el disco estándar
+      if (isSecureKey(key)) {
+          await SecureStore.setItemAsync(key, jsonValue);
+      } else {
+          await AsyncStorage.setItem(key, jsonValue);
+      }
     } catch (error) {
       console.error(`[Storage Error] Fallo al guardar en la key: ${key}`, error);
     }
@@ -35,7 +47,11 @@ export const storage = {
   // Elimina permanentemente un valor específico del storage.  
   removeItem: async (key: string): Promise<void> => {
     try {
-      await AsyncStorage.removeItem(key);
+      if (isSecureKey(key)) {
+          await SecureStore.deleteItemAsync(key);
+      } else {
+          await AsyncStorage.removeItem(key);
+      }
     } catch (error) {
       console.error(`[Storage Error] Fallo al eliminar la key: ${key}`, error);
     }
