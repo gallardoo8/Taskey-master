@@ -7,5 +7,7 @@ export const STORAGE_KEYS = {
   PARENT_TOKEN: 'parent_token',
   PARENT_DATA: 'parent_data',
   CHILD_TOKEN: 'child_token',
-  CHILD_DATA: 'child_data'
+  CHILD_DATA: 'child_data',
+  NOTIFICATIONS: '@notificaciones',
+  DEVICE_TOKEN: '@device_token'
 };

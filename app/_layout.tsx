@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '../hooks/use-color-scheme';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +23,7 @@ import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  usePushNotifications();
 
   const [loaded, error] = useFonts({
     'Figtree-400Regular': Figtree_400Regular,

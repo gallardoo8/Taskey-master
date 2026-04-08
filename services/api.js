@@ -277,3 +277,44 @@ export async function editarPolitica(token, childId, payload) {
     if (!response.ok) throw new Error(data.detail || "Error al actualizar política");
     return data;
 }
+
+// Registrar el device token del dispositivo para recibir push notifications
+export async function registrarDeviceToken(token, deviceToken, plataforma) {
+    const response = await fetch(`${API_URL}/api/notificaciones/token`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ token: deviceToken, plataforma }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Error al registrar device token");
+    return data;
+}
+
+// Obtener el historial de notificaciones del usuario
+export async function obtenerNotificaciones(token) {
+    const response = await fetch(`${API_URL}/api/notificaciones`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Error al obtener notificaciones");
+    return data;
+}
+
+// Marcar un lote de notificaciones como leídas
+export async function marcarNotificacionesLeidas(token, notificacionIds) {
+    const response = await fetch(`${API_URL}/api/notificaciones/leidas`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ notificacion_ids: notificacionIds }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Error al marcar como leídas");
+    return data;
+}
